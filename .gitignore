@@ -63,3 +63,5 @@ Thumbs.db
 # Distribution / packaging
 *.tar.gz
 *.zip
+
+config.yaml

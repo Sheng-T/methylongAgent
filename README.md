@@ -57,29 +57,41 @@ A one-click deployment script is provided for server environments.
 
 ### Steps
 
-**1. Copy and edit the config:**
-
-```bash
-cp deploy/deploy.conf.example deploy/deploy.conf   # or edit deploy/deploy.conf directly
-vim deploy/deploy.conf
-```
-
-Key fields to set:
-
-```bash
-BASE_DIR="/data/methylong"        # root directory for all data files
-LLM_MODE="local"                  # "local" or "api"
-CUDA_VERSION="cu118"              # cu118 | cu121 | cu124 | cpu
-METHYLONG_PIPELINE_REPO="https://github.com/nf-core/methylong"
-```
-
-For API mode, also set `API_KEY`, `API_BASE_URL`, `API_MODEL`.
-
-**2. Run the deployment:**
+**1. Run the deployment — the wizard starts automatically:**
 
 ```bash
 bash deploy.sh
 ```
+
+On first run (or when `BASE_DIR` is not yet set), an interactive setup wizard launches. It auto-detects CUDA version, GPU, and available memory, then prompts for the few values it cannot detect:
+
+```
+System detected:
+  CUDA wheel : cu121
+  GPU device : cuda:0
+  Memory     : 200.GB (80% of RAM)
+  CPUs       : 64
+
+[1/5] Directories
+  Base directory for all data files [/home/user/methylong]:
+
+[2/5] LLM backend
+  LLM mode (local|api) [local]:
+
+[3/5] Local model settings
+  CUDA version for PyTorch wheel (cu118|cu121|cu124|cpu) [cu121]:
+  Inference device [cuda:0]:
+
+[4/5] Nextflow resource limits
+  Max memory for Nextflow [200.GB]:
+  Max CPUs (Enter for auto-detect) []:
+
+[5/5] Pipeline & server
+  methylong pipeline git URL [https://github.com/nf-core/methylong]:
+  Web server port [50027]:
+```
+
+Press Enter at any prompt to accept the shown value. The answers are written to `deploy/deploy.conf` and deployment continues immediately.
 
 This runs 8 steps automatically (steps 3 & 4 in parallel):
 
@@ -94,16 +106,17 @@ This runs 8 steps automatically (steps 3 & 4 in parallel):
 | 7 | Final environment checks and deployment report |
 | 8 | Patch `config.yaml` with deployed paths |
 
-**Selective execution:**
+**Other options:**
 
 ```bash
+bash deploy.sh --reconfigure     # re-run the setup wizard
 bash deploy.sh --skip-llm        # skip model download (step 6)
 bash deploy.sh --step 3          # run only step 3
 bash deploy.sh --from 5          # resume from step 5
-bash deploy.sh --base /data      # override BASE_DIR
+bash deploy.sh --base /data      # set BASE_DIR directly, skip wizard
 ```
 
-**3. Start the application:**
+**2. Start the application:**
 
 ```bash
 conda activate methylong_agent

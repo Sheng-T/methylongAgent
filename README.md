@@ -324,8 +324,7 @@ Upload BAM or pod5 files and reference genome FASTA via the **sidebar file panel
 Type a natural-language instruction in the chat:
 
 ```
-Run methylong analysis on my ONT BAM file
-对我的纳米孔 BAM 文件做甲基化分析
+Run the methylong pipeline on my uploaded BAM file and reference genome.
 ```
 
 ### 3. Review Samplesheet

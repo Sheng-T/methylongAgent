@@ -1,0 +1,175 @@
+# Chinese (Simplified) translations for MethylongAgent
+# Source language: English. msgid = English, msgstr = Chinese.
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: zh_CN\n"
+
+# Login
+msgid "Enter your username to continue"
+msgstr "请输入用户名以继续"
+
+msgid "Username"
+msgstr "用户名"
+
+msgid "e.g. alice"
+msgstr "例如：alice"
+
+msgid "Login"
+msgstr "登录"
+
+# Sidebar
+msgid "Switch User"
+msgstr "切换用户"
+
+msgid "Language"
+msgstr "语言"
+
+msgid "🧬 methylong Pipeline"
+msgstr "🧬 methylong 流水线"
+
+msgid "Supported Pipelines"
+msgstr "支持的流水线"
+
+msgid "➕ New Session"
+msgstr "➕ 新建会话"
+
+msgid "Session"
+msgstr "会话"
+
+msgid "Sessions"
+msgstr "会话列表"
+
+msgid "messages"
+msgstr "条消息"
+
+msgid "📁 File Management"
+msgstr "📁 文件管理"
+
+msgid "Upload files to current session"
+msgstr "上传文件到当前会话"
+
+msgid "files"
+msgstr "个文件"
+
+msgid "🗑 Clear session files"
+msgstr "🗑 清空当前会话文件"
+
+msgid "Storage by session"
+msgstr "各会话占用"
+
+msgid "current"
+msgstr "当前"
+
+msgid "Uploads"
+msgstr "上传文件"
+
+msgid "Run products"
+msgstr "运行产物"
+
+msgid "🗑 Clean run products"
+msgstr "🗑 清理运行产物"
+
+msgid "🗑 Clean all run products"
+msgstr "🗑 清理全部运行产物"
+
+# Main area
+msgid "Loading model..."
+msgstr "正在加载模型..."
+
+msgid "Enter your analysis instruction..."
+msgstr "请输入你的分析指令..."
+
+# Status labels
+msgid "🔄 Agent running..."
+msgstr "🔄 Agent 执行中..."
+
+msgid "⏸️ Awaiting confirmation"
+msgstr "⏸️ 等待你的确认"
+
+msgid "✅ Completed"
+msgstr "✅ 执行完成"
+
+msgid "🔄 Resuming..."
+msgstr "🔄 继续执行..."
+
+msgid "⏸️ Awaiting samplesheet confirmation"
+msgstr "⏸️ 等待样本表确认"
+
+# Review panel
+msgid "Pending commands — please confirm"
+msgstr "待执行命令，请确认"
+
+msgid "Last run failed — commands have been auto-corrected"
+msgstr "上次执行失败，系统已自动修正命令"
+
+msgid "View error details"
+msgstr "查看错误详情"
+
+msgid "Review the corrected commands below and confirm to re-run:"
+msgstr "请检查以下修正后的命令，确认无误后重新执行："
+
+msgid "Pre-requisite files"
+msgstr "前置文件"
+
+msgid "Commands to execute"
+msgstr "待执行命令"
+
+msgid "Step"
+msgstr "步骤"
+
+msgid "Command list is empty — check parameter generation"
+msgstr "命令列表为空，请检查参数生成是否正常"
+
+msgid "🔧 Revision notes (fill in before submitting)"
+msgstr "🔧 修改意见（提交修改时填写）"
+
+msgid "✅ Confirm & Run"
+msgstr "✅ 确认执行"
+
+msgid "⚠️ This will run on the server immediately. Are you sure?"
+msgstr "⚠️ 命令将立即在服务器执行，确定吗？"
+
+msgid "▶ Yes, run it"
+msgstr "▶ 确定执行"
+
+msgid "← Let me check again"
+msgstr "← 我再看看"
+
+msgid "❌ Cancel"
+msgstr "❌ 取消任务"
+
+msgid "💬 Submit Revision"
+msgstr "💬 提交修改"
+
+msgid "Please fill in revision notes first"
+msgstr "请先填写修改意见"
+
+msgid "🚫 Cancelling..."
+msgstr "🚫 正在取消任务..."
+
+msgid "🔄 Regenerating commands..."
+msgstr "🔄 正在重新生成命令..."
+
+msgid "⏳ Submitted — task is running, please wait..."
+msgstr "⏳ 已提交，任务执行中，请稍候..."
+
+msgid "✅ Task cancelled"
+msgstr "✅ 任务已取消"
+
+msgid "❌ Execution failed — commands auto-corrected, please re-confirm"
+msgstr "❌ 执行失败，已自动修正命令，请重新确认"
+
+# General
+msgid "🧠 View thinking process"
+msgstr "🧠 查看思考过程"
+
+msgid "**📊 Analyze charts**"
+msgstr "**📊 分析图表**"
+
+msgid "Download chart"
+msgstr "下载图表"
+
+msgid "✅ Task completed"
+msgstr "✅ 任务处理完成"

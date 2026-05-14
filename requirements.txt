@@ -1,0 +1,39 @@
+# =============================================================================
+#  MethylongAgent Python 依赖
+#  pip install -r requirements.txt
+#
+#  注意：torch 需单独按 CUDA 版本安装，见 deploy/04_setup_agent_env.sh
+# =============================================================================
+
+# ── Core Agent Framework ─────────────────────────────────────────────────────
+langgraph>=1.1.0
+langgraph-checkpoint-sqlite>=3.0.0
+langchain>=1.2.0
+langchain-core>=1.2.0
+langchain-openai>=0.2.0
+
+# ── Streamlit UI ─────────────────────────────────────────────────────────────
+streamlit>=1.35.0
+extra-streamlit-components>=0.1.60   # login cookie persistence
+
+# ── LLM / HuggingFace（本地模型模式需要；API 模式可注释）─────────────────────
+# torch 不在此处，由 deploy/04_setup_agent_env.sh 按 CUDA 版本安装
+transformers>=4.40.0
+accelerate>=0.28.0
+bitsandbytes>=0.42.0
+
+# ── HTTP / Web ────────────────────────────────────────────────────────────────
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+html2text>=2020.1.16
+
+# ── Data / Visualization ─────────────────────────────────────────────────────
+numpy>=1.26.0
+matplotlib>=3.8.0
+
+# ── PDF Export ────────────────────────────────────────────────────────────────
+fpdf2>=2.7.0
+
+# ── Config & Utilities ────────────────────────────────────────────────────────
+pyyaml>=6.0
+python-dateutil>=2.9.0

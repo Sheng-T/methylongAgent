@@ -1,0 +1,175 @@
+# English translations for MethylongAgent
+# Source language: English. msgid == msgstr (identity — no translation needed).
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: en_US\n"
+
+# Login
+msgid "Enter your username to continue"
+msgstr "Enter your username to continue"
+
+msgid "Username"
+msgstr "Username"
+
+msgid "e.g. alice"
+msgstr "e.g. alice"
+
+msgid "Login"
+msgstr "Login"
+
+# Sidebar
+msgid "Switch User"
+msgstr "Switch User"
+
+msgid "Language"
+msgstr "Language"
+
+msgid "🧬 methylong Pipeline"
+msgstr "🧬 methylong Pipeline"
+
+msgid "Supported Pipelines"
+msgstr "Supported Pipelines"
+
+msgid "➕ New Session"
+msgstr "➕ New Session"
+
+msgid "Session"
+msgstr "Session"
+
+msgid "Sessions"
+msgstr "Sessions"
+
+msgid "messages"
+msgstr "messages"
+
+msgid "📁 File Management"
+msgstr "📁 File Management"
+
+msgid "Upload files to current session"
+msgstr "Upload files to current session"
+
+msgid "files"
+msgstr "files"
+
+msgid "🗑 Clear session files"
+msgstr "🗑 Clear session files"
+
+msgid "Storage by session"
+msgstr "Storage by session"
+
+msgid "current"
+msgstr "current"
+
+msgid "Uploads"
+msgstr "Uploads"
+
+msgid "Run products"
+msgstr "Run products"
+
+msgid "🗑 Clean run products"
+msgstr "🗑 Clean run products"
+
+msgid "🗑 Clean all run products"
+msgstr "🗑 Clean all run products"
+
+# Main area
+msgid "Loading model..."
+msgstr "Loading model..."
+
+msgid "Enter your analysis instruction..."
+msgstr "Enter your analysis instruction..."
+
+# Status labels
+msgid "🔄 Agent running..."
+msgstr "🔄 Agent running..."
+
+msgid "⏸️ Awaiting confirmation"
+msgstr "⏸️ Awaiting confirmation"
+
+msgid "✅ Completed"
+msgstr "✅ Completed"
+
+msgid "🔄 Resuming..."
+msgstr "🔄 Resuming..."
+
+msgid "⏸️ Awaiting samplesheet confirmation"
+msgstr "⏸️ Awaiting samplesheet confirmation"
+
+# Review panel
+msgid "Pending commands — please confirm"
+msgstr "Pending commands — please confirm"
+
+msgid "Last run failed — commands have been auto-corrected"
+msgstr "Last run failed — commands have been auto-corrected"
+
+msgid "View error details"
+msgstr "View error details"
+
+msgid "Review the corrected commands below and confirm to re-run:"
+msgstr "Review the corrected commands below and confirm to re-run:"
+
+msgid "Pre-requisite files"
+msgstr "Pre-requisite files"
+
+msgid "Commands to execute"
+msgstr "Commands to execute"
+
+msgid "Step"
+msgstr "Step"
+
+msgid "Command list is empty — check parameter generation"
+msgstr "Command list is empty — check parameter generation"
+
+msgid "🔧 Revision notes (fill in before submitting)"
+msgstr "🔧 Revision notes (fill in before submitting)"
+
+msgid "✅ Confirm & Run"
+msgstr "✅ Confirm & Run"
+
+msgid "⚠️ This will run on the server immediately. Are you sure?"
+msgstr "⚠️ This will run on the server immediately. Are you sure?"
+
+msgid "▶ Yes, run it"
+msgstr "▶ Yes, run it"
+
+msgid "← Let me check again"
+msgstr "← Let me check again"
+
+msgid "❌ Cancel"
+msgstr "❌ Cancel"
+
+msgid "💬 Submit Revision"
+msgstr "💬 Submit Revision"
+
+msgid "Please fill in revision notes first"
+msgstr "Please fill in revision notes first"
+
+msgid "🚫 Cancelling..."
+msgstr "🚫 Cancelling..."
+
+msgid "🔄 Regenerating commands..."
+msgstr "🔄 Regenerating commands..."
+
+msgid "⏳ Submitted — task is running, please wait..."
+msgstr "⏳ Submitted — task is running, please wait..."
+
+msgid "✅ Task cancelled"
+msgstr "✅ Task cancelled"
+
+msgid "❌ Execution failed — commands auto-corrected, please re-confirm"
+msgstr "❌ Execution failed — commands auto-corrected, please re-confirm"
+
+# General
+msgid "🧠 View thinking process"
+msgstr "🧠 View thinking process"
+
+msgid "**📊 Analyze charts**"
+msgstr "**📊 Analyze charts**"
+
+msgid "Download chart"
+msgstr "Download chart"
+
+msgid "✅ Task completed"
+msgstr "✅ Task completed"

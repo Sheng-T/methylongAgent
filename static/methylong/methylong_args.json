@@ -1,0 +1,23 @@
+{
+  "name": "methylong",
+  "description": "Nextflow workflow for DNA methylation analysis from long reads (ONT/PacBio). Extract methylation calls, perform variant calling, phasing, and DMR analysis.",
+  "usage": "methylong [--input samplesheet.csv] [--outdir results] [-profile docker] [--pacbio_modcall] [--dorado_modification VAR...] [--fiberseq] [--dmr_population_scale] [--dmr_a VAR] [--dmr_b VAR] [--dmr_caller VAR] [--aligner VAR] [--pacbio_pileup VAR] [--skip_fastqc] [--skip_trimming]",
+  "args": {
+    "kwargs": {
+      "input": "Samplesheet CSV file (REQUIRED). Columns: group,sample,modbam,ref,method",
+      "outdir": "Output directory path. [default: ./results]",
+      "profile": "Execution profile (REQUIRED): docker, singularity, conda, podman, shifter, charliecloud, apptainer, wave, gpu, test",
+      "pacbio_modcall": "Enable PacBio modification calling from unmodified BAM [boolean]",
+      "dorado_modification": "Dorado modification types (e.g., 5mCG_5hmCG 6mA) [nargs=2..]",
+      "fiberseq": "Enable FiberSeq m6A analysis [boolean]",
+      "dmr_population_scale": "Enable population-scale DMR analysis [boolean]",
+      "dmr_a": "Sample group name 1 for DMR comparison. Required with --dmr_population_scale",
+      "dmr_b": "Sample group name 2 for DMR comparison. Required with --dmr_population_scale",
+      "dmr_caller": "DMR caller method: dss or modkit [default: dss]",
+      "aligner": "Alignment tool: minimap2 or pbmm2 [default: minimap2]",
+      "pacbio_pileup": "PacBio pileup tool: modkit or pb-CpG-tools [default: modkit]",
+      "skip_fastqc": "Skip FastQC step [boolean]",
+      "skip_trimming": "Skip read trimming for ONT data [boolean]"
+    }
+  }
+}

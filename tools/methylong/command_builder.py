@@ -1,0 +1,245 @@
+import os
+import subprocess
+import threading
+
+from configs.path_config import PROJECT_ROOT
+from configs.runtime_config import DEFAULT_WORKFLOW_ARGS, MAX_WORKFLOW_RESOURCES
+from configs.app_config import APP_PASCAL
+from tools.methylong.helper import _resolve_methylong_models
+
+
+# 进程内缓存，避免重复 singularity exec 扫描
+_DORADO_LIB_CACHE: dict[str, str] = {}
+_cache_lock = threading.Lock()
+
+
+def _join_data_dir(base_data_dir: str, p: str) -> str:
+    if not p:
+        return p
+    return os.path.join(base_data_dir, os.path.basename(str(p)))
+
+
+def _resolve_pipeline_path(pipeline: str) -> str:
+    if "/" in pipeline or os.path.exists(pipeline):
+        return pipeline
+    if pipeline.lower() == "methylong":
+        from configs import DATA_PATH
+        configured = DATA_PATH.get("workflow", {}).get("pipeline_dir", "")
+        if configured:
+            base = os.path.abspath(os.path.expanduser(configured))
+        else:
+            base = os.path.join(PROJECT_ROOT, "agent_workflow")
+        return os.path.join(base, pipeline)
+    return f"nf-core/{pipeline}"
+
+
+def _find_free_gpu(min_free_mb: int = 10000) -> str:
+    try:
+        result = subprocess.run(
+            ["nvidia-smi", "--query-gpu=memory.free", "--format=csv,noheader,nounits"],
+            capture_output=True, text=True, timeout=5
+        )
+        if result.returncode == 0:
+            for i, line in enumerate(result.stdout.strip().split("\n")):
+                try:
+                    if int(line.strip()) >= min_free_mb:
+                        return f"cuda:{i}"
+                except ValueError:
+                    continue
+    except Exception:
+        pass
+    return "cuda:0"
+
+
+def _find_dorado_lib_path_in_image(image_path: str) -> str:
+    """在 Dorado SIF 镜像内找 libtorch 所在目录，结果缓存。找不到时返回已知兜底路径。"""
+    with _cache_lock:
+        if image_path in _DORADO_LIB_CACHE:
+            return _DORADO_LIB_CACHE[image_path]
+
+    fallback = "/opt/custflow/epi2meuser/dorado/lib"
+
+    if not image_path or not os.path.isfile(image_path):
+        with _cache_lock:
+            _DORADO_LIB_CACHE[image_path] = fallback
+        return fallback
+
+    try:
+        result = subprocess.run(
+            ["singularity", "exec", image_path,
+             "find", "/opt", "/usr", "-name", "libtorch.so",
+             "-not", "-path", "*/session/*", "-not", "-path", "/tmp/*"],
+            capture_output=True, text=True, timeout=30
+        )
+        for line in result.stdout.strip().splitlines():
+            line = line.strip()
+            if line:
+                lib_dir = os.path.dirname(line)
+                print(f"[CmdBuilder] Found dorado lib dir: {lib_dir}")
+                with _cache_lock:
+                    _DORADO_LIB_CACHE[image_path] = lib_dir
+                return lib_dir
+    except Exception as e:
+        print(f"[CmdBuilder] dorado lib detection failed: {e}, using fallback")
+
+    with _cache_lock:
+        _DORADO_LIB_CACHE[image_path] = fallback
+    return fallback
+
+
+def _find_dorado_image(image_store: str) -> str:
+    img_dir = os.path.join(os.path.expanduser(image_store), "workflow", "methylong")
+    if not os.path.isdir(img_dir):
+        return ""
+    # 优先匹配固定部署文件名
+    preferred = "docker.io-nanoporetech-dorado-shae423e761540b9d08b526a1eb32faf498f32e8f22.img"
+    preferred_path = os.path.join(img_dir, preferred)
+    if os.path.isfile(preferred_path):
+        return preferred_path
+    # 兜底：任何带 dorado 的镜像文件
+    for f in os.listdir(img_dir):
+        if f.endswith((".img", ".sif")) and "dorado" in f:
+            return os.path.join(img_dir, f)
+    return ""
+
+
+def _write_resource_override_config(run_dir: str, max_cpus: int,
+                                    max_memory: str, max_time: str,
+                                    extra_binds: list[str] = None,
+                                    dorado_image_path: str = "",
+                                    singularity_cache_dir: str = "") -> str:
+    if not run_dir:
+        return ""
+
+    os.makedirs(run_dir, exist_ok=True)
+    cfg_path = os.path.join(run_dir, "override.config")
+
+    gpu_device = _find_free_gpu(min_free_mb=10000)
+
+    extra_bind_str = ""
+    if extra_binds:
+        parts = [f"--bind {p}:{p}" for p in extra_binds if p and os.path.exists(p)]
+        if parts:
+            extra_bind_str = " " + " ".join(parts)
+
+    dorado_lib = _find_dorado_lib_path_in_image(dorado_image_path) if dorado_image_path else "/opt/custflow/epi2meuser/dorado/lib"
+    nv_libs = [p for p in ["/usr/local/nvidia/lib64", "/usr/local/nvidia/lib"] if os.path.isdir(p)]
+    ld_library_path = ":".join([dorado_lib] + nv_libs)
+
+    nv_bind = "--bind /usr/local/nvidia:/usr/local/nvidia" if os.path.isdir("/usr/local/nvidia") else ""
+    nv_bind_str = f" {nv_bind}" if nv_bind else ""
+
+    cache_dir_line = f"\n    cacheDir = '{singularity_cache_dir}'" if singularity_cache_dir else ""
+
+    content = f"""\
+// Auto-generated by {APP_PASCAL}
+singularity {{
+    enabled = true{cache_dir_line}
+    runOptions = "--nv{nv_bind_str}{extra_bind_str} --env LD_LIBRARY_PATH={ld_library_path}"
+}}
+
+process {{
+    resourceLimits = [
+        cpus:   {max_cpus},
+        memory: '{max_memory}',
+        time:   '{max_time}'
+    ]
+    withName: 'DORADO_BASECALLER' {{
+        ext.use_gpu = true
+        ext.args = '--device {gpu_device}'
+    }}
+    withName: 'DORADO_ALIGNER' {{
+        beforeScript = 'outdir=$(grep -oP "(?<=--output-dir )\\\\S+" .command.sh 2>/dev/null | head -1); [ -n "$outdir" ] && mkdir -p "$outdir" || true'
+        ext.args = {{ "--output-dir ${{meta.id}} && find ${{meta.id}} -mindepth 2 '(' -name '*.bam' -o -name '*.bai' ')' -exec mv {{}} ${{meta.id}}/ ';' 2>/dev/null || true" }}
+    }}
+}}
+"""
+    with open(cfg_path, "w", encoding="utf-8") as f:
+        f.write(content)
+    return cfg_path
+
+
+def build_methylong_command(kwargs: dict, data_path: dict) -> str:
+    """Build the nextflow methylong run command."""
+    base_data_dir = os.path.abspath(os.path.expanduser(data_path.get("base_data_dir", "~/agent_data")))
+    out_dir = os.path.abspath(os.path.expanduser(data_path.get("out_dir", base_data_dir)))
+
+    pipeline = kwargs.get("pipeline", "methylong")
+    pipeline_path = _resolve_pipeline_path(pipeline)
+
+    profile = DEFAULT_WORKFLOW_ARGS.get("profile", "singularity")
+
+    input_raw = kwargs.get("input", "")
+    if os.path.isabs(input_raw):
+        input_file = os.path.abspath(input_raw)
+    else:
+        input_file = os.path.abspath(_join_data_dir(base_data_dir, input_raw))
+
+    outdir_raw = kwargs.get("outdir", "results")
+    if os.path.isabs(outdir_raw):
+        outdir = os.path.abspath(outdir_raw)
+    else:
+        outdir = os.path.abspath(_join_data_dir(out_dir, outdir_raw))
+
+    cmd_parts = [
+        "nextflow run",
+        pipeline_path,
+        f"--input {input_file}",
+        f"--outdir {outdir}",
+        f"-profile {profile}",
+    ]
+
+    extra_binds = []
+    dorado_image_path = ""
+
+    from configs import DATA_PATH as _FULL_DATA_PATH
+    simplex_model, mod_model = _resolve_methylong_models(_FULL_DATA_PATH)
+    if simplex_model:
+        cmd_parts.append(f"--dorado_model {simplex_model}")
+        extra_binds.append(os.path.dirname(simplex_model))
+        print(f"[CmdBuilder] dorado_model: {simplex_model}")
+    else:
+        print("[CmdBuilder] WARNING: dorado_model not found in model_dir")
+
+    if mod_model:
+        cmd_parts.append(f"--dorado_modification_model {mod_model}")
+        print(f"[CmdBuilder] dorado_modification_model: {mod_model}")
+    else:
+        print("[CmdBuilder] WARNING: dorado_modification_model not found in model_dir")
+
+    from configs import IMAGE_PATH as _IMAGE_PATH
+    image_store = _IMAGE_PATH["image_store"]
+    dorado_image_path = _find_dorado_image(image_store)
+    singularity_cache_dir = os.path.join(os.path.expanduser(image_store), "workflow", "methylong")
+
+    if kwargs.get("config"):
+        cmd_parts.append(f"-c {os.path.abspath(kwargs['config'])}")
+
+    max_cpus   = MAX_WORKFLOW_RESOURCES.get("max_cpus") or os.cpu_count() or 8
+    max_memory = MAX_WORKFLOW_RESOURCES.get("max_memory", "30.GB")
+    max_time   = MAX_WORKFLOW_RESOURCES.get("max_time",   "72.h")
+
+    override_cfg = _write_resource_override_config(
+        outdir, max_cpus, max_memory, max_time,
+        extra_binds=extra_binds,
+        dorado_image_path=dorado_image_path,
+        singularity_cache_dir=singularity_cache_dir,
+    )
+    if override_cfg:
+        cmd_parts.append(f"-c {override_cfg}")
+
+    wf_cfg = data_path.get("workflow", {})
+    work_dir = os.path.abspath(os.path.expanduser(
+        wf_cfg.get("work_dir", os.path.join(base_data_dir, "nextflow_work"))
+    ))
+    nxf_home = os.path.abspath(os.path.expanduser(
+        wf_cfg.get("nfcore_home", os.path.join(base_data_dir, ".nextflow"))
+    ))
+
+    nextflow_cmd = " ".join(cmd_parts) + f" -work-dir {work_dir}"
+    full_cmd = (
+        f"export NXF_OFFLINE=true NXF_HOME={nxf_home} "
+        f"NXF_SINGULARITY_CACHEDIR={singularity_cache_dir} && "
+        f"{nextflow_cmd}"
+    )
+    return full_cmd

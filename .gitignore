@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+*.whl
+
+
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Secrets — never commit
+configs/secrets.py
+
+# Streamlit
+.streamlit/
+
+# Data directories
+data/
+uploads/
+runs/
+
+# LangGraph / SQLite checkpoints
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.claude/
+.vscode/
+*.swp
+*.swo
+
+# Generated graph diagrams
+*_graph.txt
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Byte-compiled / optimised
+*.pyc
+
+# Distribution / packaging
+*.tar.gz
+*.zip

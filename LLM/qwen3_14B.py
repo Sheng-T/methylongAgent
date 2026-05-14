@@ -118,9 +118,6 @@ def get_llm(
 
 
 if __name__ == "__main__":
-    llm = get_llm("/ni_data/users/shengtao/model/qwen3-14b/models--Qwen--Qwen3-14B/snapshots/40c069824f4251a91eefaf281ebe4c544efd3e18/")
-    # llm = get_llm(
-    #     "/ni_data/users/shengtao/model/qwen3-1.7b-ab/models--huihui-ai--Huihui-Qwen3-1.7B-abliterated-v2/snapshots/4462327af009cd482a6b308b67ec9b3a6eeb006a/",
-    # )
+    llm = get_llm("/path/to/qwen3-14b")
     prompt = "你好，agent"
     print(llm.invoke(prompt))

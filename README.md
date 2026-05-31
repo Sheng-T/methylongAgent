@@ -141,74 +141,17 @@ HuggingFace downloads try the official endpoint first, then fall back to `hf-mir
 
 ## ⚙️ Configuration
 
-All user-facing settings are in `config.yaml` at the project root. The deployment script patches this file automatically; you can also edit it manually and restart the app.
+All settings are in `config.yaml` (committed). The deployment script patches it automatically; edit manually and restart to apply changes.
 
-**Local overrides (`config.local.yaml`):** Create a `config.local.yaml` in the same directory to keep your personal settings separate from the committed `config.yaml`. It is loaded after `config.yaml` and its values take priority — you only need to include the keys you want to override. This file is in `.gitignore` and will never be committed.
+For personal overrides, copy it to `config.local.yaml` (gitignored) — it is loaded after `config.yaml` and its values take priority:
 
 ```bash
-cp config.yaml config.local.yaml   # one-time setup
-# then edit config.local.yaml freely
-```
-
-```yaml
-llm:
-  model_name: qwen3_14B          # model key, or "openai_compatible" for API mode
-  device: cuda:0                 # LLM inference device
-  embedding_device: cpu          # embedding model device
-  model_paths:
-    qwen3_14B: /path/to/qwen3-14b
-    embedding:  /path/to/all-MiniLM-L6-v2
-    reranker:   /path/to/bge-reranker-base
-
-tools:
-  exec_env:
-    type: conda
-    env_name: sin                # conda env with Nextflow + Singularity
-  threads: 16                    # CPU threads for bio tools
-  searxng_url: ""                # optional SearXNG URL for web search
-
-data:
-  agent_data: ~/agent_data       # upload root and run output directory
-  dorado_models: ~/tools/dorado_model/
-  dorado_sample_rate: 5000       # 4000 = v4.x models, 5000 = v5.x models
-  singularity_image_dir: ~/singularity_image
-  pipeline_dir: ~/agent_workflow/
-
-workflow:
-  profile: singularity
-  max_memory: "30.GB"
-  max_time: "72.h"
-  max_cpus: null                 # null = auto-detect
-
-server:
-  port: 50027
-  address: "0.0.0.0"
-  max_upload_mb: 10240
-
-users:
-  admin: yourpassword
-
-language: en_US                  # en_US | zh_CN
+cp config.yaml config.local.yaml
 ```
 
 ### Switching to an OpenAI-compatible API
 
-```bash
-cp api_keys.example.py api_keys.py
-# Edit api_keys.py:
-#   LLM_API_KEY      = "sk-..."
-#   LLM_API_BASE_URL = "https://api.deepseek.com/v1"
-#   LLM_API_MODEL    = "deepseek-chat"
-```
-
-Set `model_name: openai_compatible` in `config.yaml`.
-
-| Provider | `LLM_API_BASE_URL` | `LLM_API_MODEL` |
-|---|---|---|
-| DeepSeek | `https://api.deepseek.com/v1` | `deepseek-chat` |
-| OpenAI | `https://api.openai.com/v1` | `gpt-4o` |
-| SiliconFlow | `https://api.siliconflow.cn/v1` | `Qwen/Qwen3-235B-A22B` |
-| Ollama (local) | `http://localhost:11434/v1` | `qwen3:14b` |
+Copy `api_keys.example.py` to `api_keys.py`, fill in `LLM_API_KEY`, `LLM_API_BASE_URL`, and `LLM_API_MODEL`, then set `model_name: openai_compatible` in your config. Supported providers: DeepSeek, OpenAI, SiliconFlow, Ollama.
 
 ---
 
@@ -270,72 +213,18 @@ User Input
 
 ```
 methylongAgent/
-├── agent_graph/
-│   ├── graph.py                  # LangGraph graph definition
-│   ├── state.py                  # AgentState TypedDict
-│   ├── prompts/                  # LLM prompt builders
-│   └── nodes/
-│       ├── router.py             # Intent classification + state reset
-│       ├── prereq.py             # Samplesheet generation + human reviewer
-│       ├── params.py             # Nextflow command parameter builder
-│       ├── review.py             # Command preview node
-│       ├── runner.py             # Pipeline executor
-│       └── response.py          # Q&A, summarizer, irrelevant handlers
-├── tools/
-│   ├── methylong/
-│   │   ├── command_builder.py    # Builds the nextflow run command
-│   │   ├── helper.py             # Dorado model auto-discovery
-│   │   └── validator.py
-│   └── analyzers/
-│       └── methylong.py          # Post-run result parser + chart generator
-├── configs/
-│   ├── __init__.py               # Loads config.yaml → config.local.yaml (if present), applies overrides
-│   ├── model_config.py           # LLM backend (auto-switches based on api_keys.py)
-│   ├── path_config.py            # Data dirs, DB paths, quota
-│   ├── runtime_config.py         # TOOL_EXEC_ENV, workflow resource limits
-│   ├── app_config.py             # APP_DISPLAY / APP_SNAKE / APP_PASCAL
-│   └── i18n_config.py            # DEFAULT_LANG, SUPPORTED_LANGS
-├── deploy/
-│   ├── deploy.conf               # Deployment configuration
-│   ├── common.sh                 # Shared utilities for deploy scripts
-│   ├── 01_setup_dirs.sh          # Create directory structure
-│   ├── 02_setup_sin_env.sh       # sin conda env (Nextflow + Singularity)
-│   ├── 03_pull_images.sh         # Pull Singularity images
-│   ├── 04_setup_agent_env.sh     # Agent Python env + dependencies
-│   ├── 05_pull_dorado_models.sh  # Download Dorado basecall models
-│   ├── 06_download_llm.sh        # Download LLM / Embedding / Reranker
-│   ├── 07_final_check.sh         # Environment validation report
-│   └── 08_patch_config.sh        # Patch config.yaml with deployed paths
-├── ui/
-│   ├── app_ui.py                 # Streamlit entry point
-│   ├── chat.py                   # Chat area, review panels, download buttons
-│   ├── sidebar.py                # Session mgmt, file upload, storage panel
-│   └── login.py                  # Login page
-├── storage/
-│   ├── session_store.py          # SQLite: users, sessions, messages
-│   ├── file_manager.py           # File upload, quota tracking, cleanup
-│   └── checkpointer.py           # LangGraph SQLite checkpointer
-├── runtime/
-│   └── env_wrapper.py            # Tool execution environment wrapper
-├── utils/
-│   ├── llm_utils.py              # LLM instance factory + model cache
-│   ├── rag_utils.py              # Embedding + reranker for Q&A context retrieval
-│   ├── pdf_exporter.py           # Markdown → PDF (fpdf2)
-│   ├── file_server.py            # Fast file download server (bypass Streamlit limit)
-│   ├── auth_cookie.py            # Login cookie helpers
-│   ├── nodes_utils.py            # Shared helpers for graph nodes
-│   └── i18n.py                   # Translation helper _()
-├── static/
-│   └── methylong/
-│       ├── methylong_doc.md      # Pipeline documentation for Q&A RAG context
-│       └── methylong_args.json   # Optional parameter spec for command builder
-├── LLM/
-│   ├── qwen3_14B.py              # Qwen3 local model initializer
-│   └── openai_compatible.py      # OpenAI-compatible API wrapper
-├── deploy.sh                     # One-click deployment entry point
-├── start.sh                      # App launch script
-├── config.yaml                   # All user-facing configuration (committed)
-├── config.local.yaml             # Personal overrides — gitignored, takes priority
+├── agent_graph/          # LangGraph graph, state, prompts, nodes
+├── tools/                # Pipeline command builder, validators, result analyzer
+├── configs/              # Config loader (config.yaml / config.local.yaml) + sub-modules
+├── deploy/               # Deployment scripts (01–08) + deploy.conf
+├── ui/                   # Streamlit pages (app, chat, sidebar, login)
+├── storage/              # SQLite session store, file manager, checkpointer
+├── utils/                # LLM factory, RAG, PDF export, i18n, helpers
+├── static/methylong/     # Pipeline docs (RAG) + args spec
+├── LLM/                  # Local model initializers
+├── runtime/              # Tool execution environment wrapper
+├── config.yaml           # All user-facing configuration (committed)
+├── config.local.yaml     # Personal overrides — gitignored, takes priority
 └── requirements.txt
 ```
 

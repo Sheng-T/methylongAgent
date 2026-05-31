@@ -87,6 +87,85 @@ def _find_dorado_lib_path_in_image(image_path: str) -> str:
     return fallback
 
 
+def _bam_has_mod_tags(bam_path: str) -> bool:
+    """Return True if the BAM already has MM/ML modification tags (i.e. is a modBAM)."""
+    try:
+        import pysam
+        with pysam.AlignmentFile(bam_path, "rb", check_sq=False) as bam:
+            for i, read in enumerate(bam.fetch(until_eof=True)):
+                if read.has_tag("MM") or read.has_tag("Mm"):
+                    return True
+                if i >= 4:
+                    break
+        return False
+    except Exception as e:
+        print(f"[CmdBuilder] MM tag check failed: {e}")
+        return False
+
+
+def _samplesheet_pacbio_needs_modcall(input_file: str) -> bool:
+    """Return True if any PacBio sample needs --pacbio_modcall.
+
+    method='pacbio' → inspect BAM for MM/ML tags via pysam.
+                      If BAM unreadable, falls back to assuming modcall needed.
+    """
+    if not input_file or not os.path.isfile(input_file):
+        return False
+    try:
+        with open(input_file, encoding="utf-8") as f:
+            header_line = f.readline().strip().lower()
+            cols = [c.strip() for c in header_line.split(",")]
+            if "method" not in cols:
+                return False
+            method_idx = cols.index("method")
+            path_idx   = cols.index("path") if "path" in cols else -1
+
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                parts = [c.strip() for c in line.split(",")]
+                if method_idx >= len(parts):
+                    continue
+                method = parts[method_idx].lower()
+
+                if method == "pacbio":
+                    bam = parts[path_idx] if 0 <= path_idx < len(parts) else ""
+                    if bam and os.path.isfile(bam):
+                        if _bam_has_mod_tags(bam):
+                            print(f"[CmdBuilder] {os.path.basename(bam)}: MM/ML tags found → modBAM, skip modcall")
+                            continue
+                        else:
+                            print(f"[CmdBuilder] {os.path.basename(bam)}: no MM/ML tags → needs --pacbio_modcall")
+                            return True
+                    else:
+                        print(f"[CmdBuilder] method='pacbio', BAM not found → needs --pacbio_modcall")
+                        return True
+        return False
+    except Exception as e:
+        print(f"[CmdBuilder] _samplesheet_pacbio_needs_modcall error: {e}")
+        return False
+
+
+def _samplesheet_needs_dorado(input_file: str) -> bool:
+    """Return True if any sample provides raw POD5 input (needs Dorado basecalling).
+    ONT modBAM files are already basecalled — Dorado is NOT needed for them.
+    """
+    if not input_file or not os.path.isfile(input_file):
+        return False  # unknown → don't assume Dorado; user will get a pipeline error if needed
+    try:
+        import csv as _csv
+        with open(input_file, encoding="utf-8") as f:
+            reader = _csv.DictReader(f)
+            for row in reader:
+                path = (row.get("path") or "").strip().lower()
+                if path.endswith(".pod5"):
+                    return True
+        return False
+    except Exception:
+        return False
+
+
 def _find_dorado_image(image_store: str) -> str:
     img_dir = os.path.join(os.path.expanduser(image_store), "workflow", "methylong")
     if not os.path.isdir(img_dir):
@@ -192,20 +271,26 @@ def build_methylong_command(kwargs: dict, data_path: dict) -> str:
     extra_binds = []
     dorado_image_path = ""
 
+    needs_dorado         = _samplesheet_needs_dorado(input_file)
+    needs_pacbio_modcall = _samplesheet_pacbio_needs_modcall(input_file)
+    print(f"[CmdBuilder] needs dorado: {needs_dorado}  needs pacbio_modcall: {needs_pacbio_modcall}")
+
     from configs import DATA_PATH as _FULL_DATA_PATH
     simplex_model, mod_model = _resolve_methylong_models(_FULL_DATA_PATH)
-    if simplex_model:
-        cmd_parts.append(f"--dorado_model {simplex_model}")
-        extra_binds.append(os.path.dirname(simplex_model))
-        print(f"[CmdBuilder] dorado_model: {simplex_model}")
+    if needs_dorado:
+        if simplex_model:
+            cmd_parts.append(f"--dorado_model {simplex_model}")
+            extra_binds.append(os.path.dirname(simplex_model))
+            print(f"[CmdBuilder] dorado_model: {simplex_model}")
+        else:
+            print("[CmdBuilder] WARNING: dorado_model not found in model_dir")
+        if mod_model:
+            cmd_parts.append(f"--dorado_modification_model {mod_model}")
+            print(f"[CmdBuilder] dorado_modification_model: {mod_model}")
+        else:
+            print("[CmdBuilder] WARNING: dorado_modification_model not found in model_dir")
     else:
-        print("[CmdBuilder] WARNING: dorado_model not found in model_dir")
-
-    if mod_model:
-        cmd_parts.append(f"--dorado_modification_model {mod_model}")
-        print(f"[CmdBuilder] dorado_modification_model: {mod_model}")
-    else:
-        print("[CmdBuilder] WARNING: dorado_modification_model not found in model_dir")
+        print("[CmdBuilder] PacBio-only samplesheet — skipping dorado model params")
 
     from configs import IMAGE_PATH as _IMAGE_PATH
     image_store = _IMAGE_PATH["image_store"]
@@ -214,6 +299,22 @@ def build_methylong_command(kwargs: dict, data_path: dict) -> str:
 
     if kwargs.get("config"):
         cmd_parts.append(f"-c {os.path.abspath(kwargs['config'])}")
+
+    # Optional params from LLM — boolean → flag, string/numeric → --param value
+    # pacbio_modcall is auto-detected above; exclude from LLM-decided params
+    _HANDLED = {"pipeline", "input", "outdir", "config",
+                "dorado_model", "dorado_modification_model",
+                "pacbio_modcall"}
+    for key, value in kwargs.items():
+        if key in _HANDLED:
+            continue
+        if value is True:
+            cmd_parts.append(f"--{key}")
+        elif value not in (False, None, ""):
+            cmd_parts.append(f"--{key} {value}")
+
+    if needs_pacbio_modcall:
+        cmd_parts.append("--pacbio_modcall")
 
     max_cpus   = MAX_WORKFLOW_RESOURCES.get("max_cpus") or os.cpu_count() or 8
     max_memory = MAX_WORKFLOW_RESOURCES.get("max_memory", "30.GB")
@@ -228,17 +329,19 @@ def build_methylong_command(kwargs: dict, data_path: dict) -> str:
     if override_cfg:
         cmd_parts.append(f"-c {override_cfg}")
 
-    wf_cfg = data_path.get("workflow", {})
+    # data_path is already the workflow sub-dict when called from nodes_utils
     work_dir = os.path.abspath(os.path.expanduser(
-        wf_cfg.get("work_dir", os.path.join(base_data_dir, "nextflow_work"))
+        data_path.get("work_dir", os.path.join(base_data_dir, "nextflow_work"))
     ))
-    nxf_home = os.path.abspath(os.path.expanduser(
-        wf_cfg.get("nfcore_home", os.path.join(base_data_dir, ".nextflow"))
-    ))
+    from configs import DATA_PATH as _DP
+    _global_nxf_home = _DP.get("workflow", {}).get("nfcore_home", os.path.join(base_data_dir, ".nextflow"))
+    nxf_home = os.path.abspath(os.path.expanduser(_global_nxf_home))
 
+    from configs.runtime_config import NEXTFLOW_OFFLINE
+    offline_flag = "NXF_OFFLINE=true " if NEXTFLOW_OFFLINE else ""
     nextflow_cmd = " ".join(cmd_parts) + f" -work-dir {work_dir}"
     full_cmd = (
-        f"export NXF_OFFLINE=true NXF_HOME={nxf_home} "
+        f"export {offline_flag}NXF_HOME={nxf_home} "
         f"NXF_SINGULARITY_CACHEDIR={singularity_cache_dir} && "
         f"{nextflow_cmd}"
     )

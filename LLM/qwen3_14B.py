@@ -7,7 +7,7 @@ class Qwen3LLM(LLM):
 
     model: Any
     tokenizer: Any
-    max_new_tokens: int = 1024
+    max_new_tokens: int = 3072
     temperature: float = 0.7
     top_p: float = 0.9
     repetition_penalty: float = 1.1
@@ -70,7 +70,7 @@ def get_llm(
     model_dir: str,
     device: str = "auto",
     torch_dtype: Any = "auto",
-    max_new_tokens: int = 1024,
+    max_new_tokens: int = 3072,
     temperature: float = 0.7,
     top_p: float = 0.9,
     repetition_penalty: float = 1.1,

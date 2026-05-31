@@ -16,17 +16,233 @@ from utils.ui_logger import ui_print
 from configs.app_config import APP_SNAKE
 
 
-def answer_general_question_node(state: AgentState) -> AgentState:
-    """Answer methylation/bioinformatics Q&A questions."""
-    from agent_graph.prompts.prompts import build_qa_prompt
+_RESULTS_KEYWORDS = {
+    "show me result", "show result", "show me the result",
+    "view result", "view the result", "get result", "my result",
+    "download result", "download the result",
+    "查看结果", "显示结果", "我的结果", "下载结果", "结果在哪", "结果怎么下载",
+}
 
-    user_input = state["input"]
-    lang = get_lang()
+_HELP_KEYWORDS = {
+    "how to use", "how do i use", "how do i start", "getting started",
+    "how does this work", "what should i do", "where do i start",
+    "怎么用", "如何使用", "怎么开始", "如何开始", "怎么操作", "使用说明",
+}
+
+_CAPABILITY_KEYWORDS = {
+    "what can you do", "what are your capabilities", "what do you support",
+    "what can this do", "what is this", "what does this agent do",
+    "你能做什么", "你有什么功能", "这个agent能做什么", "支持什么功能",
+    "功能介绍", "能做什么",
+}
+
+_FORMAT_KEYWORDS = {
+    "what file", "supported format", "what format", "file type", "what input",
+    "支持什么文件", "支持什么格式", "什么格式", "什么文件", "上传什么", "文件格式",
+}
+
+
+def _match_any(text: str, keywords: set) -> bool:
+    lower = text.lower()
+    return any(k in lower for k in keywords)
+
+
+_CANNED = {
+    "help_en": """\
+### 🚀 Getting Started
+
+MethylongAgent helps you run nanopore methylation analysis through a conversational interface.
+
+**Typical workflow:**
+1. **Upload files** — Use the **📁 File Management** panel in the left sidebar to upload your BAM or POD5 files (and reference genome if needed)
+2. **Describe your analysis** — Type your request, e.g. *"Run 5mC methylation analysis on my ONT BAM files"*
+3. **Review the samplesheet** — The agent auto-generates a CSV samplesheet; verify paths and confirm
+4. **Confirm commands** — Review the generated Nextflow commands, then click **▶ Yes, run it**
+5. **Get results** — Download buttons appear automatically after the pipeline completes
+
+**Tips:**
+- For files > 1 GB, upload directly to the server and use the **📋** button next to File Management to copy the session path
+- Use the mode pills (**🔄 Auto / 🔬 Run Workflow / 💬 Q&A**) to control routing
+- Use **💬 Submit Revision** in the command review panel to adjust parameters before running
+""",
+    "help_zh": """\
+### 🚀 快速上手
+
+MethylongAgent 通过对话界面帮助你完成纳米孔甲基化测序分析。
+
+**典型流程：**
+1. **上传文件** — 在左侧边栏 **📁 文件管理** 面板上传 BAM 或 POD5 文件（如需可同时上传参考基因组）
+2. **描述需求** — 在对话框输入分析需求，例如 *"对我的 ONT BAM 文件做 5mC 甲基化分析"*
+3. **确认样本表** — Agent 自动生成 CSV 样本表，检查路径无误后确认
+4. **确认命令** — 查看生成的 Nextflow 命令，点击 **▶ 确认运行**
+5. **获取结果** — 流水线完成后下载按钮自动出现在页面底部
+
+**小贴士：**
+- 文件 > 1 GB 时建议直接上传到服务器，点击文件管理旁的 **📋** 按钮复制会话路径
+- 可用顶部模式选择（**🔄 自动 / 🔬 执行流水线 / 💬 问答**）控制路由
+- 在命令确认面板使用 **💬 提交修改** 可以在运行前调整参数
+""",
+    "capability_en": """\
+### 🧬 What MethylongAgent Can Do
+
+I specialize in nanopore methylation sequencing analysis using the **methylong** Nextflow pipeline.
+
+**Pipeline tasks:**
+- 5mC / 5hmC / CpG methylation analysis on ONT modBAM or POD5 files
+- Dorado basecalling from raw POD5 files (GPU required)
+- DMR (Differentially Methylated Region) analysis across sample groups
+- PacBio HiFi methylation analysis
+
+**Q&A:**
+- Methylation biology questions (5mC, CpG islands, DMR interpretation, etc.)
+- Pipeline parameter guidance
+- Troubleshooting failed runs
+
+**I cannot** handle unrelated bioinformatics tasks (e.g. variant calling, RNA-seq, ChIP-seq).
+""",
+    "capability_zh": """\
+### 🧬 MethylongAgent 能做什么
+
+我专注于使用 **methylong** Nextflow 流水线进行纳米孔甲基化测序分析。
+
+**流水线任务：**
+- ONT modBAM 或 POD5 文件的 5mC / 5hmC / CpG 甲基化分析
+- 从原始 POD5 进行 Dorado 碱基识别（需要 GPU）
+- 跨样本组的 DMR（差异甲基化区域）分析
+- PacBio HiFi 甲基化分析
+
+**问答：**
+- 甲基化生物学问题（5mC、CpG 岛、DMR 解读等）
+- 流水线参数建议
+- 运行失败的排查
+
+**无法处理**与甲基化无关的生信任务（如变异检测、RNA-seq、ChIP-seq）。
+""",
+    "format_en": """\
+### 📁 Supported File Formats
+
+| Type | Extension | Notes |
+|------|-----------|-------|
+| ONT modBAM | `.bam` | Must contain MM/ML methylation tags (Dorado output) |
+| POD5 raw signal | `.pod5` | Dorado basecalling will be run automatically |
+| PacBio HiFi BAM | `.bam` | Specify *pacbio* as method; mention "PacBio" or "HiFi" in your request |
+| Reference genome | `.fa` / `.fasta` / `.fna` | Required for alignment; auto-detected from uploaded files if not specified |
+
+**Large files (> 1 GB):** Upload directly to the server rather than through the browser.
+Use the **📋** button next to File Management in the sidebar to copy the session upload path.
+""",
+    "format_zh": """\
+### 📁 支持的文件格式
+
+| 类型 | 扩展名 | 说明 |
+|------|--------|------|
+| ONT modBAM | `.bam` | 必须包含 MM/ML 甲基化标签（Dorado 输出） |
+| POD5 原始信号 | `.pod5` | 自动触发 Dorado 碱基识别 |
+| PacBio HiFi BAM | `.bam` | 需在需求中注明 "PacBio" 或 "HiFi"，method 填 pacbio |
+| 参考基因组 | `.fa` / `.fasta` / `.fna` | 对齐必需；未指定时自动从上传文件中检测 |
+
+**大文件（> 1 GB）：** 建议直接上传到服务器，
+点击侧边栏文件管理旁的 **📋** 按钮复制会话上传路径。
+""",
+}
+
+
+
+def answer_general_question_node(state: AgentState) -> AgentState:
+    """Answer methylation/bioinformatics Q&A questions, with RAG context from local docs."""
+    from agent_graph.prompts.prompts import build_qa_prompt
+    from utils.rag_utils import rag_search
+
+    user_input   = state["input"]
+    lang         = get_lang()
+    zip_path     = state.get("workflow_result_zip", "")
+    images       = state.get("analysis_images", [])
+    run_dir      = state.get("run_dir", "")
+
+    # ── Short-circuit: deterministic responses for common meta-queries ───────────
+    sfx = "en" if lang == "en_US" else "zh"
+
+    if _match_any(user_input, _HELP_KEYWORDS):
+        state["final_answer"] = _CANNED[f"help_{sfx}"]
+        ui_print("[LLM Answer] help query → canned response")
+        return state
+
+    if _match_any(user_input, _CAPABILITY_KEYWORDS):
+        state["final_answer"] = _CANNED[f"capability_{sfx}"]
+        ui_print("[LLM Answer] capability query → canned response")
+        return state
+
+    if _match_any(user_input, _FORMAT_KEYWORDS):
+        state["final_answer"] = _CANNED[f"format_{sfx}"]
+        ui_print("[LLM Answer] format query → canned response")
+        return state
+
+    if _match_any(user_input, _RESULTS_KEYWORDS):
+        if zip_path and os.path.isfile(zip_path):
+            chart_line_en = f"- **Analysis charts**: {len(images)} plot(s) displayed above\n" if images else ""
+            chart_line_zh = f"- **分析图表**：上方已展示 {len(images)} 张\n" if images else ""
+            if lang == "en_US":
+                state["final_answer"] = (
+                    f"### ✅ Pipeline Complete — Results Ready\n\n"
+                    f"- **Results ZIP**: `{os.path.basename(zip_path)}`\n"
+                    f"  → Click the **⬇ Download Results (.zip)** button below\n"
+                    f"{chart_line_en}"
+                    f"\n> Run directory: `{run_dir}`"
+                )
+            else:
+                state["final_answer"] = (
+                    f"### ✅ 流水线已完成，结果就绪\n\n"
+                    f"- **结果压缩包**：`{os.path.basename(zip_path)}`\n"
+                    f"  → 点击下方 **⬇ 下载结果压缩包 (.zip)** 按钮下载\n"
+                    f"{chart_line_zh}"
+                    f"\n> 运行目录：`{run_dir}`"
+                )
+        else:
+            state["final_answer"] = (
+                "### 📭 No Results Yet\n\n"
+                "The methylong pipeline hasn't been run in this session.\n\n"
+                "**To get started:**\n"
+                "1. Upload your BAM or POD5 files using the **File Management** panel in the sidebar\n"
+                "2. Describe your analysis in the chat (e.g. *\"Run 5mC methylation analysis on my ONT BAM files\"*)\n"
+                "3. Confirm the samplesheet and commands when prompted\n\n"
+                "Once the pipeline completes, download buttons for the results ZIP and report will appear automatically."
+                if lang == "en_US" else
+                "### 📭 暂无结果\n\n"
+                "本次会话尚未运行 methylong 流水线。\n\n"
+                "**快速开始：**\n"
+                "1. 在左侧边栏 **文件管理** 面板上传 BAM 或 POD5 文件\n"
+                "2. 在对话框中描述分析需求（例如：*\"对我的 ONT BAM 文件做 5mC 甲基化分析\"*）\n"
+                "3. 确认样本表和命令后流水线自动运行\n\n"
+                "流水线完成后，结果压缩包和报告的下载按钮会自动出现在页面底部。"
+            )
+        ui_print("[LLM Answer] results query → canned response")
+        return state
+
+    # Build results context so LLM can refer to actual outputs
+    results_context = ""
+    if zip_path and os.path.isfile(zip_path):
+        results_context += f"- Results ZIP ready for download from the sidebar: `{os.path.basename(zip_path)}`\n"
+    if images:
+        results_context += f"- Analysis charts available in the sidebar: {[os.path.basename(p) for p in images]}\n"
+    if run_dir:
+        results_context += f"- Run directory: `{run_dir}`\n"
+
+    # Query local docs first
+    rag_context = ""
+    try:
+        result = rag_search(user_input, top_k=3)
+        if result:
+            rag_context = result
+            ui_print(f"[RAG] Retrieved {len(rag_context)} chars of context")
+        else:
+            ui_print("[RAG] No relevant context found, using LLM knowledge only")
+    except Exception as e:
+        ui_print(f"[RAG] Search failed ({e}), falling back to LLM knowledge")
 
     try:
         ui_print(f"\n[LLM Answer] Invoking LLM: {user_input[:60]}...")
         llm = get_llm_instance(is_planner=False)
-        final_prompt = build_qa_prompt(user_input, "", lang)
+        final_prompt = build_qa_prompt(user_input, rag_context, lang, results_context=results_context)
         llm_response = llm.invoke(final_prompt)
         llm_response = llm_response.strip() if isinstance(llm_response, str) else llm_response.content.strip()
         llm_response = re.sub(r"<think>.*?</think>", "", llm_response, flags=re.DOTALL).strip()
@@ -57,10 +273,9 @@ def summarize_execution_result_node(state: AgentState) -> AgentState:
     """
     from tools.analyzers.methylong import get_methylong_analyzer
 
-    lang          = get_lang()
-    tool_calls    = state.get("tool_calls", [])
-    tool_output   = state.get("tool_output", [])
-    run_dir       = state.get("run_dir", "")
+    lang        = get_lang()
+    tool_output = state.get("tool_output", [])
+    run_dir     = state.get("run_dir", "")
     workflow_name = "methylong"
 
     _NF_INTERNAL = {"work", f"{APP_SNAKE}_analysis"}
@@ -104,18 +319,14 @@ def summarize_execution_result_node(state: AgentState) -> AgentState:
     else:
         warnings.append(f"outdir not found or empty: {outdir}")
 
-    # Package results into a zip file (exclude large binary files)
-    _SKIP_EXTS = {".bam", ".bai", ".cram", ".crai", ".sam"}
     zip_path = ""
     if outdir and os.path.isdir(outdir) and run_dir:
         temp_zip = os.path.join(run_dir, f"{workflow_name}_results.zip")
         try:
-            ui_print("[WorkflowSummarizer] Creating results zip (excluding BAM/CRAM)...")
+            ui_print("[WorkflowSummarizer] Creating results zip...")
             with zipfile.ZipFile(temp_zip, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as zf:
                 for root, _, files in os.walk(outdir):
                     for fname in files:
-                        if any(fname.endswith(ext) for ext in _SKIP_EXTS):
-                            continue
                         full = os.path.join(root, fname)
                         arcname = os.path.relpath(full, os.path.dirname(outdir))
                         zf.write(full, arcname)
@@ -123,14 +334,12 @@ def summarize_execution_result_node(state: AgentState) -> AgentState:
             ui_print(f"[WorkflowSummarizer] Zip ready: {temp_zip} ({size_mb:.1f} MB)")
 
             session_dir = get_session_dir()
-            zip_moved = False
             if session_dir and os.path.isdir(session_dir):
                 try:
                     zip_path = os.path.join(session_dir,
                         f"{workflow_name}_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip")
                     shutil.move(temp_zip, zip_path)
                     ui_print(f"[WorkflowSummarizer] Zip moved to session: {zip_path}")
-                    zip_moved = True
                 except Exception as move_err:
                     ui_print(f"[WorkflowSummarizer] Move to session failed: {move_err}, keeping in run_dir")
                     zip_path = temp_zip
@@ -138,13 +347,6 @@ def summarize_execution_result_node(state: AgentState) -> AgentState:
                 ui_print(f"[WorkflowSummarizer] session_dir unavailable, keeping zip in run_dir")
                 zip_path = temp_zip
 
-            if zip_moved and os.path.isdir(run_dir):
-                try:
-                    ui_print(f"[WorkflowSummarizer] Cleaning up run directory: {run_dir}")
-                    shutil.rmtree(run_dir, ignore_errors=True)
-                    ui_print("[WorkflowSummarizer] Run directory deleted")
-                except Exception as e:
-                    ui_print(f"[WorkflowSummarizer] Cleanup warning: {e}")
         except Exception as e:
             ui_print(f"[WorkflowSummarizer] Zip failed: {e}")
             zip_path = ""

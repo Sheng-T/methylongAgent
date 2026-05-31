@@ -20,7 +20,7 @@ env/
 ENV/
 
 # Secrets — never commit
-configs/secrets.py
+api_keys.py
 
 # Streamlit
 .streamlit/
@@ -64,4 +64,5 @@ Thumbs.db
 *.tar.gz
 *.zip
 
-config.yaml
+#config.yaml
+config.local.yaml

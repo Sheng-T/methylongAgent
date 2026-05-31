@@ -143,6 +143,13 @@ HuggingFace downloads try the official endpoint first, then fall back to `hf-mir
 
 All user-facing settings are in `config.yaml` at the project root. The deployment script patches this file automatically; you can also edit it manually and restart the app.
 
+**Local overrides (`config.local.yaml`):** Create a `config.local.yaml` in the same directory to keep your personal settings separate from the committed `config.yaml`. It is loaded after `config.yaml` and its values take priority — you only need to include the keys you want to override. This file is in `.gitignore` and will never be committed.
+
+```bash
+cp config.yaml config.local.yaml   # one-time setup
+# then edit config.local.yaml freely
+```
+
 ```yaml
 llm:
   model_name: qwen3_14B          # model key, or "openai_compatible" for API mode
@@ -187,8 +194,8 @@ language: en_US                  # en_US | zh_CN
 ### Switching to an OpenAI-compatible API
 
 ```bash
-cp configs/secrets.example.py configs/secrets.py
-# Edit configs/secrets.py:
+cp api_keys.example.py api_keys.py
+# Edit api_keys.py:
 #   LLM_API_KEY      = "sk-..."
 #   LLM_API_BASE_URL = "https://api.deepseek.com/v1"
 #   LLM_API_MODEL    = "deepseek-chat"
@@ -282,13 +289,12 @@ methylongAgent/
 │   └── analyzers/
 │       └── methylong.py          # Post-run result parser + chart generator
 ├── configs/
-│   ├── __init__.py               # Loads config.yaml and applies overrides
-│   ├── model_config.py           # LLM model registry
+│   ├── __init__.py               # Loads config.yaml → config.local.yaml (if present), applies overrides
+│   ├── model_config.py           # LLM backend (auto-switches based on api_keys.py)
 │   ├── path_config.py            # Data dirs, DB paths, quota
-│   ├── runtime_config.py         # TOOL_EXEC_ENV, threads, searxng
+│   ├── runtime_config.py         # TOOL_EXEC_ENV, workflow resource limits
 │   ├── app_config.py             # APP_DISPLAY / APP_SNAKE / APP_PASCAL
-│   ├── i18n_config.py            # DEFAULT_LANG, SUPPORTED_LANGS
-│   └── secrets.example.py        # API key template (copy to secrets.py)
+│   └── i18n_config.py            # DEFAULT_LANG, SUPPORTED_LANGS
 ├── deploy/
 │   ├── deploy.conf               # Deployment configuration
 │   ├── common.sh                 # Shared utilities for deploy scripts
@@ -313,14 +319,23 @@ methylongAgent/
 │   └── env_wrapper.py            # Tool execution environment wrapper
 ├── utils/
 │   ├── llm_utils.py              # LLM instance factory + model cache
+│   ├── rag_utils.py              # Embedding + reranker for Q&A context retrieval
 │   ├── pdf_exporter.py           # Markdown → PDF (fpdf2)
+│   ├── file_server.py            # Fast file download server (bypass Streamlit limit)
+│   ├── auth_cookie.py            # Login cookie helpers
+│   ├── nodes_utils.py            # Shared helpers for graph nodes
 │   └── i18n.py                   # Translation helper _()
 ├── static/
-│   └── modkit/modkit_doc.md      # Pipeline documentation for Q&A context
-├── LLM/                          # Local model initializers (qwen3_*.py)
+│   └── methylong/
+│       ├── methylong_doc.md      # Pipeline documentation for Q&A RAG context
+│       └── methylong_args.json   # Optional parameter spec for command builder
+├── LLM/
+│   ├── qwen3_14B.py              # Qwen3 local model initializer
+│   └── openai_compatible.py      # OpenAI-compatible API wrapper
 ├── deploy.sh                     # One-click deployment entry point
 ├── start.sh                      # App launch script
-├── config.yaml                   # All user-facing configuration
+├── config.yaml                   # All user-facing configuration (committed)
+├── config.local.yaml             # Personal overrides — gitignored, takes priority
 └── requirements.txt
 ```
 

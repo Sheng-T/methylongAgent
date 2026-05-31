@@ -69,17 +69,22 @@ def create_agent_graph(agent_name: str,
     )
 
     # ── Workflow path ──────────────────────────────────────────────────────────
-    workflow.add_edge("prereq_generator",      "human_prereq_reviewer")
-    workflow.add_edge("human_prereq_reviewer", "param_generator")
+    workflow.add_edge("prereq_generator", "human_prereq_reviewer")
+    workflow.add_conditional_edges(
+        "human_prereq_reviewer",
+        lambda state: "prereq_generator" if state.get("user_feedback") else "param_generator",
+        {"prereq_generator": "prereq_generator", "param_generator": "param_generator"},
+    )
     workflow.add_edge("param_generator",       "human_reviewer")
 
     workflow.add_conditional_edges(
         "human_reviewer",
         lambda state: state.get("next_node") or "param_generator",
         {
-            "executor":        "executor",
-            "param_generator": "param_generator",
-            "end_node":        "end_node",
+            "executor":         "executor",
+            "param_generator":  "param_generator",
+            "prereq_generator": "prereq_generator",
+            "end_node":         "end_node",
         }
     )
 

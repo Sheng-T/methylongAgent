@@ -46,8 +46,13 @@ def classify_intent_route(state: AgentState) -> str:
         pass  # fall through to LLM classification
 
     # Quick keyword heuristics — only unambiguous execution signals
-    workflow_kw = ["bam", "pod5", "samplesheet", "样本表",
-                   "nextflow run", "run pipeline", "运行流水线", "运行pipeline"]
+    workflow_kw = [
+        "bam", "pod5", "samplesheet", "样本表",
+        "nextflow run", "run pipeline", "运行流水线", "运行pipeline",
+        "run methylong", "run the methylong", "analyze my", "analyse my",
+        "run the pipeline", "start the pipeline", "launch the pipeline",
+        "跑流水线", "跑methylong", "分析我的",
+    ]
     if any(kw in user_input for kw in workflow_kw):
         ui_print("[Router] Keyword match → workflow")
         return "route_to_workflow"
@@ -63,8 +68,10 @@ def classify_intent_route(state: AgentState) -> str:
         raw = llm.invoke(prompt)
         content = raw if isinstance(raw, str) else raw.content
         content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL).strip()
-        if "```" in content:
-            content = content.split("```")[1].lstrip("json").strip()
+        # extract JSON object from possible markdown fences or surrounding text
+        m = re.search(r'\{.*\}', content, re.DOTALL)
+        if m:
+            content = m.group(0)
         parsed = json.loads(content)
         intent = parsed.get("intent", "answer")
         ui_print(f"[Router] LLM intent: {intent} — {parsed.get('reason', '')}")

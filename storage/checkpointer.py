@@ -10,6 +10,13 @@ Falls back to MemorySaver if package is not installed.
 """
 import os
 import sqlite3
+import warnings
+
+warnings.filterwarnings(
+    "ignore",
+    message="The default value of `allowed_objects` will change",
+    module="langgraph",
+)
 
 _checkpointer = None
 

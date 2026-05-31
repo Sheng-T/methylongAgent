@@ -1,23 +1,39 @@
 {
   "name": "methylong",
-  "description": "Nextflow workflow for DNA methylation analysis from long reads (ONT/PacBio). Extract methylation calls, perform variant calling, phasing, and DMR analysis.",
-  "usage": "methylong [--input samplesheet.csv] [--outdir results] [-profile docker] [--pacbio_modcall] [--dorado_modification VAR...] [--fiberseq] [--dmr_population_scale] [--dmr_a VAR] [--dmr_b VAR] [--dmr_caller VAR] [--aligner VAR] [--pacbio_pileup VAR] [--skip_fastqc] [--skip_trimming]",
+  "description": "nf-core/methylong 2.0.0 — DNA methylation analysis from long reads (ONT/PacBio). Preprocessing → alignment → methylation calling → SNV calling → haplotype phasing → DMR calling.",
+  "usage": "nextflow run nf-core/methylong -profile <singularity|docker|conda> --input samplesheet.csv --outdir <OUTDIR>",
   "args": {
     "kwargs": {
-      "input": "Samplesheet CSV file (REQUIRED). Columns: group,sample,modbam,ref,method",
-      "outdir": "Output directory path. [default: ./results]",
-      "profile": "Execution profile (REQUIRED): docker, singularity, conda, podman, shifter, charliecloud, apptainer, wave, gpu, test",
-      "pacbio_modcall": "Enable PacBio modification calling from unmodified BAM [boolean]",
-      "dorado_modification": "Dorado modification types (e.g., 5mCG_5hmCG 6mA) [nargs=2..]",
-      "fiberseq": "Enable FiberSeq m6A analysis [boolean]",
-      "dmr_population_scale": "Enable population-scale DMR analysis [boolean]",
-      "dmr_a": "Sample group name 1 for DMR comparison. Required with --dmr_population_scale",
-      "dmr_b": "Sample group name 2 for DMR comparison. Required with --dmr_population_scale",
-      "dmr_caller": "DMR caller method: dss or modkit [default: dss]",
-      "aligner": "Alignment tool: minimap2 or pbmm2 [default: minimap2]",
-      "pacbio_pileup": "PacBio pileup tool: modkit or pb-CpG-tools [default: modkit]",
-      "skip_fastqc": "Skip FastQC step [boolean]",
-      "skip_trimming": "Skip read trimming for ONT data [boolean]"
+      "input": "[REQUIRED] Path to samplesheet CSV. Columns: group,sample,path,ref,method (method: ont or pacbio)",
+      "outdir": "[REQUIRED] Output directory path (absolute path recommended). [default: results]",
+
+      "dorado_model": "ONT dorado basecall model. [default: sup]",
+      "dorado_modification": "ONT modification type for dorado. [default: 5mC_5hmC] For ONT Fiber-seq with 6mA analysis, use: 5mCG_5hmCG 6mA",
+
+      "pacbio_modcall": "[boolean] Enable modcalling in PacBio workflow (for unmodified BAM input).",
+      "pacbio_modcaller": "PacBio modcaller. (accepted: jasmine, ccsmeth) [default: jasmine]",
+
+      "no_trim": "[boolean] Skip trimming step in ONT workflow.",
+      "reset": "[boolean] Remove alignment info and reset flags before processing.",
+
+      "ont_aligner": "Aligner for ONT workflow. (accepted: dorado, minimap2) [default: dorado]",
+      "pacbio_aligner": "Aligner for PacBio workflow. (accepted: pbmm2, minimap2) [default: pbmm2]",
+
+      "pileup_method": "Pileup method for PacBio workflow. (accepted: pbcpgtools, modkit) [default: pbcpgtools]",
+      "pileup_count": "[boolean] Use count mode in pbcpgtools pileup instead of model mode.",
+      "denovo": "[boolean] Reference-free CpG identification with pb-CpG-tools.",
+      "bedgraph": "[boolean] Output bedgraph files.",
+      "all_contexts": "[boolean] Include all cytosine contexts in pileup.",
+      "m6a": "[boolean] Pileup m6A motif. Use ONLY for ONT Fiber-seq (method=ont + --fiberseq) when user explicitly requests m6A pileup output. Do NOT include for PacBio Fiber-seq — PacBio Fiber-seq uses --fiberseq alone.",
+
+      "fiberseq": "[boolean] Enable Fiber-seq analysis (m6A calling, nucleosome/MSP annotations). For PacBio Fiber-seq: --fiberseq alone is sufficient. For ONT Fiber-seq: use --fiberseq together with --m6a and set --dorado_modification to '5mCG_5hmCG 6mA'.",
+
+      "skip_snvs": "[boolean] Skip SNV calling and haplotype phasing steps.",
+      "dmr_population_scale": "[boolean] Enable population-scale DMR analysis.",
+      "dmr_a": "Group name A for population-scale DMR comparison. Value must be copied verbatim from the group name the user stated (e.g. user says 'group1 has sample1.bam' → value is 'group1'). Required with --dmr_population_scale.",
+      "dmr_b": "Group name B for population-scale DMR comparison. Value must be copied verbatim from the group name the user stated. Required with --dmr_population_scale.",
+      "haplotype_dmrer": "DMR caller for haplotype-level analysis. (accepted: dss, modkit) [default: dss] Only include when user explicitly names the tool (e.g. 'use modkit' or 'not DSS').",
+      "population_dmrer": "DMR caller for population-scale analysis. (accepted: dss, modkit) [default: dss] Only include when user explicitly names the tool."
     }
   }
 }

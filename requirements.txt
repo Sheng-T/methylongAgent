@@ -13,7 +13,7 @@ langchain-core>=1.2.0
 langchain-openai>=0.2.0
 
 # ── Streamlit UI ─────────────────────────────────────────────────────────────
-streamlit>=1.35.0
+streamlit>=1.40.0
 extra-streamlit-components>=0.1.60   # login cookie persistence
 
 # ── LLM / HuggingFace（本地模型模式需要；API 模式可注释）─────────────────────
@@ -30,6 +30,7 @@ html2text>=2020.1.16
 # ── Data / Visualization ─────────────────────────────────────────────────────
 numpy>=1.26.0
 matplotlib>=3.8.0
+pysam>=0.22.0
 
 # ── PDF Export ────────────────────────────────────────────────────────────────
 fpdf2>=2.7.0

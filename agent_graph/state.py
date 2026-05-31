@@ -15,6 +15,7 @@ EMPTY_STATE = {
     "analysis_images":   [],
     "workflow_result_zip": "",
     "user_choice":       None,
+    "samplesheet_issues": [],
 }
 
 
@@ -41,3 +42,4 @@ class AgentState(TypedDict):
     run_dir: str
     analysis_images: List[str]
     workflow_result_zip: str
+    samplesheet_issues: List[Dict]  # {"level": "error"|"warning", "message": str}

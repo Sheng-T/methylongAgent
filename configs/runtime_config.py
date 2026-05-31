@@ -1,4 +1,10 @@
 
+# Port for the background streaming file-download server (Streamlit port + 1 by default)
+FILE_SERVER_PORT = 50026
+
+# Whether to run Nextflow in offline mode (NXF_OFFLINE=true)
+NEXTFLOW_OFFLINE = False
+
 llm_args = {
     "device": "cuda:0",
 }

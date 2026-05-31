@@ -95,6 +95,9 @@ def get_llm_instance(is_planner: bool = False, temperature: float = 0.01):
     """
     if LLM_SOURCE == "api":
         t = temperature if is_planner else 0.7
+        from configs.model_config import openai_compat_config
+        _host = openai_compat_config.get("base_url", "").split("//")[-1].split("/")[0]
+        print(f"[API] {openai_compat_config.get('model', '?')} @ {_host}")
         llm_func = import_llm_initializer(module_name=LLM_NAME)
         return llm_func("", device="cpu", temperature=t)
 

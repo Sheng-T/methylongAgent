@@ -2,7 +2,7 @@
 # ── Read API settings from secrets.py (gitignored) ────────────────────────────
 def _secret(name: str, default=""):
     try:
-        import configs.secrets as _s
+        import api_keys as _s
         return getattr(_s, name, default) or default
     except ImportError:
         return default

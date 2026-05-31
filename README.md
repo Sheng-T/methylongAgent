@@ -53,7 +53,7 @@ A one-click deployment script is provided for server environments.
 
 - Linux server with Conda installed
 - NVIDIA GPU (recommended) with CUDA 11.8 / 12.x
-- ~100 GB free disk space (images + models)
+- ~70 GB free disk space (Singularity images ~31 GB, LLM models ~30 GB, Dorado models ~2 GB)
 
 ### Steps
 
@@ -69,8 +69,8 @@ On first run (or when `BASE_DIR` is not yet set), an interactive setup wizard la
 System detected:
   CUDA wheel : cu121
   GPU device : cuda:0
-  Memory     : 200.GB (80% of RAM)
-  CPUs       : 64
+  Memory     : 60.GB
+  CPUs       : 16
 
 [1/5] Directories
   Base directory for all data files [/home/user/methylong]:
@@ -83,8 +83,8 @@ System detected:
   Inference device [cuda:0]:
 
 [4/5] Nextflow resource limits
-  Max memory for Nextflow [200.GB]:
-  Max CPUs (Enter for auto-detect) []:
+  Max memory for Nextflow [60.GB]:
+  Max CPUs (Enter for auto-detect) [16]:
 
 [5/5] Pipeline & server
   methylong pipeline git URL [https://github.com/nf-core/methylong]:

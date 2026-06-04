@@ -60,7 +60,7 @@ data:
   pipeline_dir: ~/agent_workflow/
 
   # 单用户最大存储配额（GB）| Per-user storage quota in GB
-  user_quota_gb: 10
+  user_quota_gb: 100
 
 # ── 用户账号 ───────────────────────────────────────────────────────────────────
 # 仅首次启动时写入数据库，之后以数据库为准（密码修改请通过页面或管理接口）

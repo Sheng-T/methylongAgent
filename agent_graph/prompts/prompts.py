@@ -105,8 +105,11 @@ Rules:
     * Only leave ref empty if no reference file exists in the uploaded files list
 - Leave empty string for columns that do not apply to that sample
 - Output CSV plain text ONLY — no markdown fences, no code blocks, no explanations, no blank lines before the header
-- group/sample columns: if the user did not specify names, auto-generate group as 'group1','group2'...
-  and sample as the requested filename stem (without extension)
+- group/sample columns:
+  * group: if the user did not specify group names —
+    - use 'group1' for ALL rows when the user says samples should be analyzed "together", "jointly", or implies they belong to the same condition/experiment
+    - otherwise auto-generate 'group1', 'group2'... (one per row)
+  * sample: always use the filename stem (without extension)
 - method column rules (only 'ont' or 'pacbio' are valid):
     * 'ont'    — Oxford Nanopore; DEFAULT if platform not stated
     * 'pacbio' — PacBio HiFi; only when user explicitly says "PacBio", "HiFi", or "pb"
@@ -153,8 +156,11 @@ Rules:
     * 仅当上传文件中确实没有参考基因组文件时才将 ref 留空
 - 如果某列在该样本中不适用，填空字符串
 - 只输出 CSV 纯文本，不要加任何说明、代码块标记或 <think> 标签，表头前不要有空行
-- group/sample 列：如果用户未指定，group 自动填写为 group1、group2...，
-  sample 自动使用输入文件名去掉扩展名（如 PAU05248_pass_ffa693eb）
+- group/sample 列：
+  * group：用户未指定时——
+    - 用户说"一起"、"同时分析"、"同一批/组/条件"时，所有行统一填 'group1'
+    - 否则按行自动递增：group1、group2...
+  * sample：始终使用输入文件名去掉扩展名（如 PAU05248_pass_ffa693eb）
 - method 列只有两个合法值：'ont' 或 'pacbio'：
     * 'ont'    — 牛津纳米孔；未指定平台时默认填此值
     * 'pacbio' — PacBio HiFi；仅当用户明确说 "PacBio"、"HiFi" 或 "pb" 时才填
@@ -233,7 +239,9 @@ def build_qa_prompt(user_input: str, context: str, lang: str = "en_US",
 Provide a clear, accurate, and concise answer (keep it under 800 words unless detail is essential).
 Use Markdown formatting when appropriate.
 Focus on methylation biology, nanopore sequencing, and the methylong pipeline.
-For IGV visualization questions: recommend loading the aligned BAM + BAI index, plus bedMethyl (.bed.gz + .tbi) or bedGraph files for methylation tracks. Do not suggest re-running the pipeline."""
+For IGV visualization questions: recommend loading the aligned BAM + BAI index, plus bedMethyl (.bed.gz + .tbi) or bedGraph files for methylation tracks. Do not suggest re-running the pipeline.
+For FASTQ input questions: explain that FASTQ files are NOT supported. methylong requires either a modBAM (BAM basecalled by Dorado with a modification model, containing MM/ML tags) or raw pod5 files. Standard FASTQ files lack the MM/ML modification tags needed for methylation calling.
+For PacBio + Dorado questions: explain that Dorado is an ONT-specific basecaller and cannot process PacBio data. PacBio methylation calling uses pb-CpG-tools (pileup), which methylong handles automatically when method=pacbio. The user should just provide their PacBio BAM without specifying Dorado."""
     else:
         ctx_section     = f"\n【参考资料】\n{context}\n" if context else ""
         results_section = (f"\n【当前会话结果】\n{results_context}"
@@ -248,4 +256,6 @@ For IGV visualization questions: recommend loading the aligned BAM + BAI index, 
 {user_input}
 
 请提供清晰、准确、简洁的回答（除非必要，控制在 800 字以内）。适当使用 Markdown 格式。
-专注于甲基化生物学、纳米孔测序和 methylong 流水线相关内容。"""
+专注于甲基化生物学、纳米孔测序和 methylong 流水线相关内容。
+如果用户提到 FASTQ 文件：说明 FASTQ 不被支持，methylong 需要 modBAM（由 Dorado + 修饰模型 basecall 的 BAM，含 MM/ML 标签）或 pod5 文件，普通 FASTQ 缺少甲基化标签。
+如果用户提到 PacBio + Dorado：说明 Dorado 是 ONT 专属 basecaller，不支持 PacBio 数据；PacBio 甲基化使用 pb-CpG-tools，methylong 在 method=pacbio 时自动调用，用户直接提供 PacBio BAM 即可，无需指定 Dorado。"""

@@ -35,6 +35,19 @@ def classify_intent_route(state: AgentState) -> str:
     user_input  = state.get("input", "").strip().lower()
     lang        = get_lang()
 
+    # FASTQ is not a supported input — intercept regardless of user_choice
+    fastq_kw = ["fastq", ".fq", "fq.gz", "fastq.gz"]
+    if any(kw in user_input for kw in fastq_kw):
+        ui_print("[Router] FASTQ input detected → routing to answer for format explanation")
+        return "route_to_answer"
+
+    # PacBio + Dorado is an invalid combination — Dorado is ONT-only
+    pacbio_kw = ["pacbio", "hifi", "pb"]
+    dorado_kw = ["dorado"]
+    if any(k in user_input for k in pacbio_kw) and any(k in user_input for k in dorado_kw):
+        ui_print("[Router] PacBio + Dorado combination detected → routing to answer for explanation")
+        return "route_to_answer"
+
     # Explicit mode from UI
     if user_choice == "workflow":
         ui_print("[Router] User selected workflow mode directly")

@@ -1,94 +1,86 @@
 # ============================================================
-#  MethylongAgent user config — restart the app after editing
+#  MethylongAgent configuration
+#  Edit and restart the app to apply changes.
 #
-#  启动命令 | Start command:
+#  Start command:
 #    streamlit run ui/app_ui.py
 # ============================================================
 
-# ── LLM 模型 ──────────────────────────────────────────────────────────────────
+# ── LLM model ─────────────────────────────────────────────────────────────────
 llm:
-  # 使用的模型名称，必须在 model_paths 中有对应路径
-  # Which model to use — must have a matching entry in model_paths
-  # 可选 / Options: qwen3_14B | qwen35_27B | qwen3_8B | openai_compatible
+  # Model to use — must have a matching entry in model_paths
+  # Options: qwen3_14B | qwen35_27B | qwen3_8B | openai_compatible
   model_name: qwen3_14B
 
-  # 推理设备 | Inference device
-  # Examples: cuda:0  cuda:1  cuda:2  cuda:3  auto  cpu
+  # Inference device
+  # Examples: cuda:0  cuda:1  auto  cpu
   device: cuda:0
 
-  # 本地模型路径（绝对路径）| Local model paths (absolute paths)
+  # Local model paths (absolute paths)
   model_paths:
-    qwen3_14B: /path/to/qwen3-14b
-    embedding: /path/to/all-MiniLM-L6-v2
-    reranker: /path/to/bge-reranker-base
-# ── 工具执行环境 ───────────────────────────────────────────────────────────────
+    qwen3_14B: /ni_data/users/shengtao/model/qwen3-14b/models--Qwen--Qwen3-14B/snapshots/40c069824f4251a91eefaf281ebe4c544efd3e18/
+    embedding:  /ni_data/users/shengtao/model/all-MiniLM-L6-v2
+    reranker:   /ni_data/users/shengtao/model/bge-reranker-base/models--BAAI--bge-reranker-base/snapshots/2cfc18c9415c912f9d8155881c133215df768a70/
+
+# ── Tool execution environment ────────────────────────────────────────────────
 tools:
-  # 当找不到 Singularity 镜像时，生信工具在此 conda 环境下执行
   # Execution environment for bio tools when no Singularity image is found
   #
   # type: conda   → activates the named conda environment before running
   # type: script  → bash <script_path> "<cmd>"
-  # type: null    → 直接在当前 Python 进程环境执行 / run in current shell env
+  # type: null    → run in current shell environment
   exec_env:
     type: conda
     env_name: sin
 
-# ── 数据与模型目录 ─────────────────────────────────────────────────────────────
+# ── Data and model directories ─────────────────────────────────────────────────
 data:
-  # 用户文件上传和运行结果存放的根目录（支持 ~）
   # Root directory for uploaded files and run results (~ supported)
-  agent_data: ~/agent_data
-  nfcore_home: ~/.nextflow     # Nextflow 插件/缓存目录 | Nextflow plugin cache dir
-  nextflow_offline: true          # 默认 false；服务器无法联网时改为 true（插件须预先缓存到 nfcore_home）
-  # Default false; set true on air-gapped servers (plugins must be pre-cached)
+  agent_data:      ~/agent_data
+  nfcore_home:     ~/.nextflow     # Nextflow plugin/cache directory
+  nextflow_offline: true           # Set true on air-gapped servers (plugins must be pre-cached)
 
-  # Dorado basecaller 模型目录 | Dorado model directory (used by methylong pipeline)
+  # Dorado model directory (used by methylong pipeline)
   dorado_models: ~/tools/dorado_model/
 
-  # Pod5 采样率，用于自动选择 Dorado 模型版本
   # Pod5 sampling rate for automatic Dorado model version selection
-  # 4000 → 旧版 R10.4.1 chemistry (v4.x.x models)
-  # 5000 → 新版 R10.4.1 chemistry (v5.x.x models)
+  # 4000 → older R10.4.1 chemistry (v4.x.x models)
+  # 5000 → newer R10.4.1 chemistry (v5.x.x models)
   dorado_sample_rate: 4000
 
-  # Singularity 镜像存放目录 | Singularity image directory
+  # Singularity image directory
   singularity_image_dir: ~/singularity_image
 
-  # 自定义本地 Nextflow pipeline 目录
   # Directory for local Nextflow pipelines (each subdirectory = one pipeline)
-  # 留空则使用项目内的 agent_workflow/ 目录
   pipeline_dir: ~/agent_workflow/
 
-  # 单用户最大存储配额（GB）| Per-user storage quota in GB
+  # Per-user storage quota in GB
   user_quota_gb: 100
 
-# ── 用户账号 ───────────────────────────────────────────────────────────────────
-# 仅首次启动时写入数据库，之后以数据库为准（密码修改请通过页面或管理接口）
+# ── User accounts ──────────────────────────────────────────────────────────────
 # Only written to DB on first start — later changes go through the UI or admin API
-# 格式 / format:  username: password
+# Format:  username: password
 users:
   admin: admin2026
 
-# ── Nextflow Workflow ──────────────────────────────────────────────────────────
+# ── Nextflow workflow ──────────────────────────────────────────────────────────
 workflow:
-  # Nextflow 运行 profile | Nextflow run profile
-  # 常用值 / common: singularity | docker | conda
+  # Nextflow run profile
+  # Common values: singularity | docker | conda
   profile: singularity
 
-  # 资源上限（防止单个 process 超出机器实际可用量）
   # Resource limits (prevent individual processes from exceeding available capacity)
   max_memory: "30.GB"
-  max_time: "72.h"
-  max_cpus: null   # null = 自动检测 CPU 数 / auto-detect CPU count
+  max_time:   "72.h"
+  max_cpus:   null   # null = auto-detect CPU count
 
-# ── Web 服务 ───────────────────────────────────────────────────────────────────
+# ── Web server ─────────────────────────────────────────────────────────────────
 server:
-  port: 50025
-  address: "0.0.0.0"
-  max_upload_mb: 10240    # 单文件最大上传大小（MB）| Max upload size per file in MB
-  file_server_port: 50028    # 文件下载加速服务端口（需与 Streamlit 端口不同）
-  # Fast file-download server port (must differ from Streamlit port)
+  port:             50025
+  address:          "0.0.0.0"
+  max_upload_mb:    10240    # Max upload size per file in MB
+  file_server_port: 50028    # Fast file-download server port (must differ from Streamlit port)
 
-# ── 界面语言 ───────────────────────────────────────────────────────────────────
-# UI language: zh_CN | en_US
+# ── UI language ────────────────────────────────────────────────────────────────
+# en_US | zh_CN
 language: en_US

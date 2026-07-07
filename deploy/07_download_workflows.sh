@@ -23,6 +23,21 @@ if [[ -n "${METHYLONG_PIPELINE_REPO:-}" ]]; then
         log_info "Pipeline repo exists, pulling latest..."
         git -C "${_pipeline_dest}" pull || log_warn "git pull failed, using existing code."
         pipeline_cloned=true
+    elif [[ -d "${_pipeline_dest}" ]]; then
+        if find "${_pipeline_dest}" -mindepth 1 -maxdepth 1 | read; then
+            log_warn "Pipeline destination already exists and is not a git repo: ${_pipeline_dest}"
+            log_warn "Remove or rename it, then re-run step 7 so the repo can be cloned cleanly."
+        else
+            log_info "Cloning pipeline from ${METHYLONG_PIPELINE_REPO} into existing empty directory..."
+            _ref_arg=()
+            [[ -n "${METHYLONG_PIPELINE_REF:-}" ]] && _ref_arg=(--branch "${METHYLONG_PIPELINE_REF}")
+            if git clone "${_ref_arg[@]}" "${METHYLONG_PIPELINE_REPO}" "${_pipeline_dest}"; then
+                log_success "Pipeline cloned to ${_pipeline_dest}"
+                pipeline_cloned=true
+            else
+                log_warn "Pipeline clone failed, patch step will only use existing local files."
+            fi
+        fi
     else
         log_info "Cloning pipeline from ${METHYLONG_PIPELINE_REPO}..."
         _ref_arg=()

@@ -1,15 +1,13 @@
 #!/usr/bin/env bash
-# deploy/01_setup_dirs.sh — create required directory structure
+# deploy/01_setup_dirs.sh 鈥?create required directory structure
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/common.sh"
 
-if [[ -z "${BASE_DIR:-}" ]]; then
-    [[ -f "${SCRIPT_DIR}/deploy.conf" ]] && source "${SCRIPT_DIR}/deploy.conf"
-    resolve_paths
-fi
+[[ -f "${SCRIPT_DIR}/deploy.conf" ]] && source "${SCRIPT_DIR}/deploy.conf"
+resolve_paths
 
-log_step "Step 1 — Create directories"
+log_step "Step 1 鈥?Create directories"
 show_paths
 
 _dirs=(

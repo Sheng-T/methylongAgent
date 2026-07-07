@@ -1,17 +1,15 @@
 #!/usr/bin/env bash
-# deploy/04_setup_agent_env.sh — create methylong_agent conda env and install dependencies
+# deploy/04_setup_agent_env.sh 鈥?create methylong_agent conda env and install dependencies
 # Runs in parallel with 03_pull_images.sh
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 source "${SCRIPT_DIR}/common.sh"
 
-if [[ -z "${BASE_DIR:-}" ]]; then
-    [[ -f "${SCRIPT_DIR}/deploy.conf" ]] && source "${SCRIPT_DIR}/deploy.conf"
-    resolve_paths
-fi
+[[ -f "${SCRIPT_DIR}/deploy.conf" ]] && source "${SCRIPT_DIR}/deploy.conf"
+resolve_paths
 
-log_step "Step 4 — Set up agent Python env (${AGENT_ENV})"
+log_step "Step 4 鈥?Set up agent Python env (${AGENT_ENV})"
 
 init_conda
 

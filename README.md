@@ -63,48 +63,10 @@ A one-click deployment script is provided for server environments.
 bash deploy.sh
 ```
 
-On first run (or when `BASE_DIR` is not yet set), an interactive setup wizard launches. It auto-detects CUDA version, GPU, and available memory, then prompts for the few values it cannot detect:
-
-```
-System detected:
-  CUDA wheel : cu121
-  GPU device : cuda:0
-  Memory     : 60.GB
-  CPUs       : 16
-
-[1/5] Directories
-  Base directory for all data files [/home/user/methylong]:
-
-[2/5] LLM backend
-  LLM mode (local|api) [local]:
-
-[3/5] Local model settings
-  CUDA version for PyTorch wheel (cu118|cu121|cu124|cpu) [cu121]:
-  Inference device [cuda:0]:
-
-[4/5] Nextflow resource limits
-  Max memory for Nextflow [60.GB]:
-  Max CPUs (Enter for auto-detect) [16]:
-
-[5/5] Pipeline & server
-  methylong pipeline git URL [https://github.com/nf-core/methylong]:
-  Web server port [50027]:
-```
+On first run (or when `BASE_DIR` is not yet set), an interactive setup wizard launches. 
 
 Press Enter at any prompt to accept the shown value. The answers are written to `deploy/deploy.conf` and deployment continues immediately.
 
-This runs 8 steps automatically (steps 3 & 4 in parallel):
-
-| Step | What it does |
-|---|---|
-| 1 | Create directory structure under `BASE_DIR` |
-| 2 | Create `sin` conda env with Nextflow + Singularity/Apptainer |
-| 3 | Pull all Singularity images + clone methylong pipeline |
-| 4 | Create `methylong_agent` conda env, install Python dependencies |
-| 5 | Download Dorado basecall models via the Dorado SIF |
-| 6 | Download LLM / Embedding / Reranker models from HuggingFace |
-| 7 | Final environment checks and deployment report |
-| 8 | Patch `config.yaml` with deployed paths |
 
 **Other options:**
 

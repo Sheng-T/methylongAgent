@@ -6,10 +6,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 source "${SCRIPT_DIR}/common.sh"
 
-if [[ -z "${BASE_DIR:-}" ]]; then
-    [[ -f "${SCRIPT_DIR}/deploy.conf" ]] && source "${SCRIPT_DIR}/deploy.conf"
-    resolve_paths
-fi
+[[ -f "${SCRIPT_DIR}/deploy.conf" ]] && source "${SCRIPT_DIR}/deploy.conf"
+resolve_paths
 
 log_step "Step 6 — Download LLM / Embedding / Reranker models"
 
@@ -22,14 +20,20 @@ export LLM_MODEL_DIR EMBEDDING_MODEL_DIR RERANKER_MODEL_DIR
 
 init_conda
 
+_hf_model_complete() {
+    local local_dir="$1"
+    [[ -f "${local_dir}/config.json" ]] || return 1
+    ls "${local_dir}"/pytorch_model.bin \
+       "${local_dir}"/model.safetensors \
+       "${local_dir}"/*.safetensors 2>/dev/null | head -1 | grep -q .
+}
+
 _hf_download() {
     local repo_id="$1"
     local local_dir="$2"
     local label="${3:-${repo_id}}"
 
-    if ls "${local_dir}"/config.json \
-          "${local_dir}"/pytorch_model.bin \
-          "${local_dir}"/*.safetensors 2>/dev/null | head -1 | grep -q .; then
+    if _hf_model_complete "${local_dir}"; then
         log_info "${label}: already downloaded at ${local_dir}, skipping."
         return 0
     fi
@@ -41,11 +45,31 @@ _hf_download() {
         local endpoint="$1"
         [[ -n "${endpoint}" ]] && log_info "  endpoint: ${endpoint}" \
                                || log_info "  endpoint: https://huggingface.co (official)"
-        HF_ENDPOINT="${endpoint}" \
-        conda_run "${AGENT_ENV}" huggingface-cli download \
-            "${repo_id}" \
-            --local-dir "${local_dir}" \
-            --local-dir-use-symlinks False
+        if conda_run "${AGENT_ENV}" hf --help >/dev/null 2>&1; then
+            if [[ -n "${endpoint}" ]]; then
+                HF_ENDPOINT="${endpoint}" HF_HUB_DISABLE_XET=1 \
+                conda_run "${AGENT_ENV}" hf download \
+                    "${repo_id}" \
+                    --local-dir "${local_dir}"
+            else
+                HF_HUB_DISABLE_XET=1 \
+                conda_run "${AGENT_ENV}" hf download \
+                    "${repo_id}" \
+                    --local-dir "${local_dir}"
+            fi
+        else
+            if [[ -n "${endpoint}" ]]; then
+                HF_ENDPOINT="${endpoint}" HF_HUB_DISABLE_XET=1 \
+                conda_run "${AGENT_ENV}" python -m huggingface_hub download \
+                    "${repo_id}" \
+                    --local-dir "${local_dir}"
+            else
+                HF_HUB_DISABLE_XET=1 \
+                conda_run "${AGENT_ENV}" python -m huggingface_hub download \
+                    "${repo_id}" \
+                    --local-dir "${local_dir}"
+            fi
+        fi
     }
 
     if _do_download "${HF_ENDPOINT:-}"; then
@@ -91,17 +115,21 @@ else
 fi
 
 _hf_download "sentence-transformers/all-MiniLM-L6-v2" \
-             "${EMBEDDING_MODEL_DIR}" "all-MiniLM-L6-v2 (Embedding)"
+             "${EMBEDDING_MODEL_DIR}" "all-MiniLM-L6-v2 (Embedding)" || true
 
 _hf_download "BAAI/bge-reranker-base" \
-             "${RERANKER_MODEL_DIR}" "bge-reranker-base (Reranker)"
+             "${RERANKER_MODEL_DIR}" "bge-reranker-base (Reranker)" || true
 
 echo ""
 log_info "Model directories:"
 for _d in "${LLM_MODEL_DIR}" "${EMBEDDING_MODEL_DIR}" "${RERANKER_MODEL_DIR}"; do
     if [[ -d "${_d}" ]]; then
         _sz=$(du -sh "${_d}" 2>/dev/null | cut -f1)
-        echo "  ${_d}  (${_sz})"
+        if _hf_model_complete "${_d}"; then
+            echo "  ${_d}  (${_sz}, complete)"
+        else
+            echo "  ${_d}  (${_sz}, incomplete)"
+        fi
     else
         echo "  ${_d}  [NOT FOUND]"
     fi

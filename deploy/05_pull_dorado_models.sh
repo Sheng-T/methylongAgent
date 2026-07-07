@@ -1,16 +1,14 @@
 #!/usr/bin/env bash
-# deploy/05_pull_dorado_models.sh — download Dorado basecall models using the Dorado SIF
+# deploy/05_pull_dorado_models.sh 鈥?download Dorado basecall models using the Dorado SIF
 # Requires: Dorado SIF already pulled (03_pull_images.sh)
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/common.sh"
 
-if [[ -z "${BASE_DIR:-}" ]]; then
-    [[ -f "${SCRIPT_DIR}/deploy.conf" ]] && source "${SCRIPT_DIR}/deploy.conf"
-    resolve_paths
-fi
+[[ -f "${SCRIPT_DIR}/deploy.conf" ]] && source "${SCRIPT_DIR}/deploy.conf"
+resolve_paths
 
-log_step "Step 5 — Download Dorado basecall models"
+log_step "Step 5 鈥?Download Dorado basecall models"
 
 _SIMPLEX_MODEL="dna_r10.4.1_e8.2_400bps_sup@v5.2.0"
 _MOD_MODEL="dna_r10.4.1_e8.2_400bps_sup@v5.2.0_5mC_5hmC@v2"
@@ -69,7 +67,7 @@ _download_model() {
     if [[ -d "${dest}" ]]; then
         log_success "Downloaded: ${model_name}"
     else
-        log_warn "Download may have failed — check ${DORADO_MODEL_DIR}"
+        log_warn "Download may have failed 鈥?check ${DORADO_MODEL_DIR}"
         return 1
     fi
 }

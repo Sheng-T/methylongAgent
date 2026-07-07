@@ -1,15 +1,13 @@
 #!/usr/bin/env bash
-# deploy/02_setup_sin_env.sh — create sin conda env with Nextflow + Singularity/Apptainer
+# deploy/02_setup_sin_env.sh 鈥?create sin conda env with Nextflow + Singularity/Apptainer
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/common.sh"
 
-if [[ -z "${BASE_DIR:-}" ]]; then
-    [[ -f "${SCRIPT_DIR}/deploy.conf" ]] && source "${SCRIPT_DIR}/deploy.conf"
-    resolve_paths
-fi
+[[ -f "${SCRIPT_DIR}/deploy.conf" ]] && source "${SCRIPT_DIR}/deploy.conf"
+resolve_paths
 
-log_step "Step 2 — Set up sin conda env (Nextflow + Singularity)"
+log_step "Step 2 鈥?Set up sin conda env (Nextflow + Singularity)"
 
 init_conda
 

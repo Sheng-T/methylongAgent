@@ -1,17 +1,15 @@
 #!/usr/bin/env bash
-# deploy/03_pull_images.sh — pull all Singularity images to METHYLONG_IMAGE_DIR
+# deploy/03_pull_images.sh 閳?pull all Singularity images to METHYLONG_IMAGE_DIR
 # Depot images are downloaded directly via wget (pre-built .img files).
 # Docker images are pulled via singularity pull docker://.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/common.sh"
 
-if [[ -z "${BASE_DIR:-}" ]]; then
-    [[ -f "${SCRIPT_DIR}/deploy.conf" ]] && source "${SCRIPT_DIR}/deploy.conf"
-    resolve_paths
-fi
+[[ -f "${SCRIPT_DIR}/deploy.conf" ]] && source "${SCRIPT_DIR}/deploy.conf"
+resolve_paths
 
-log_step "Step 3 — Pull Singularity images"
+log_step "Step 3 閳?Pull Singularity images"
 log_info "Target dir: ${METHYLONG_IMAGE_DIR}"
 
 init_conda
@@ -111,24 +109,6 @@ _docker_image \
     "docker://nanoporetech/dorado:shae423e761540b9d08b526a1eb32faf498f32e8f22" \
     "docker.io-nanoporetech-dorado-shae423e761540b9d08b526a1eb32faf498f32e8f22.img" \
     "docker://docker.1ms.run/nanoporetech/dorado:shae423e761540b9d08b526a1eb32faf498f32e8f22"
-
-# Clone methylong pipeline if repo is configured
-if [[ -n "${METHYLONG_PIPELINE_REPO:-}" ]]; then
-    _pipeline_dest="${PIPELINE_DIR}/methylong"
-    if [[ -d "${_pipeline_dest}/.git" ]]; then
-        log_info "Pipeline repo exists, pulling latest..."
-        git -C "${_pipeline_dest}" pull || log_warn "git pull failed, using existing code."
-    else
-        log_info "Cloning pipeline from ${METHYLONG_PIPELINE_REPO}..."
-        _ref_arg=""
-        [[ -n "${METHYLONG_PIPELINE_REF:-}" ]] && _ref_arg="--branch ${METHYLONG_PIPELINE_REF}"
-        git clone ${_ref_arg} "${METHYLONG_PIPELINE_REPO}" "${_pipeline_dest}"
-        log_success "Pipeline cloned to ${_pipeline_dest}"
-    fi
-else
-    log_warn "METHYLONG_PIPELINE_REPO not set — place pipeline code manually at:"
-    log_warn "  ${PIPELINE_DIR}/methylong/"
-fi
 
 echo ""
 echo -e "${_BLD}Images: total=${_total}  skipped=${_skipped}  ok=${_ok}  failed=${_failed}${_RST}"

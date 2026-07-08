@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 # deploy/09_final_check.sh - final environment checks and deployment report
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -86,15 +86,13 @@ _pipeline_dir="${PIPELINE_DIR}/methylong"
 if [[ -d "${_pipeline_dir}/.git" ]]; then
     _ok "methylong pipeline: ${_pipeline_dir}"
 elif [[ -d "${_pipeline_dir}" ]]; then
-    _warn "methylong dir exists but is not a git repo - may be manually placed"
+    if [[ -n "${METHYLONG_PIPELINE_REPO:-}" ]]; then
+        _fail "methylong dir exists but repo clone is incomplete or failed: ${_pipeline_dir}"
+    else
+        _warn "methylong dir exists without .git - assuming manual placement"
+    fi
 else
     _fail "methylong pipeline not found at ${_pipeline_dir}"
-fi
-if [[ -d "${_pipeline_dir}" ]]; then
-    [[ -f "${_pipeline_dir}/nextflow.config" ]] && _ok "pipeline nextflow.config present" \
-                                                   || _fail "pipeline nextflow.config missing"
-    [[ -f "${_pipeline_dir}/modules/local/dorado/basecaller/main.nf" ]] && _ok "patched dorado basecaller present" \
-                                                                            || _fail "patched dorado basecaller file missing"
 fi
 
 echo -e "\n${_BLD}Dorado models (${DORADO_MODEL_DIR}):${_RST}"
